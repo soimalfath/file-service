@@ -38,4 +38,29 @@ router.post('/', upload.single('file'), async (req, res) => {
   }
 });
 
+// GET /files?limit=20&token=xxx
+router.get('/files', async (req, res) => {
+  try {
+    const MaxKeys = parseInt(req.query.limit, 10) || 20;
+    const ContinuationToken = req.query.token;
+    const Bucket = process.env.R2_BUCKET_NAME;
+    const baseUrl = process.env.R2_PUBLIC_URL || process.env.R2_ENDPOINT;
+
+    const result = await R2.listObjects({ Bucket, ContinuationToken, MaxKeys });
+    const files = (result.Contents || []).map(obj => ({
+      filename: obj.Key,
+      url: `${baseUrl.replace(/\/$/, '')}/${obj.Key}`
+    }));
+
+    res.json({
+      files,
+      nextToken: result.NextContinuationToken || null,
+      isTruncated: !!result.IsTruncated
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to list files' });
+  }
+});
+
 module.exports = router;

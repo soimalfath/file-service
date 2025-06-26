@@ -37,6 +37,35 @@ Example using `curl`:
 curl -F "file=@path/to/your/file.txt" http://localhost:3000/upload
 ```
 
+## List Files Endpoint
+
+You can list all files in the bucket (with pagination) using:
+
+```
+GET /upload/files?limit=20&token=NEXT_TOKEN
+```
+- `limit` (optional): Number of files per page (default 20)
+- `token` (optional): Continuation token for pagination (from previous response)
+
+Example response:
+```json
+{
+  "files": [
+    { "filename": "...", "url": "..." },
+    { "filename": "...", "url": "..." }
+  ],
+  "nextToken": "...",
+  "isTruncated": true
+}
+```
+
+- Use `nextToken` for the next page if `isTruncated` is true.
+
+## Usage Example (List Files)
+```
+curl "http://localhost:3000/upload/files?limit=10"
+```
+
 ## Folder Structure
 
 Recommended structure for maintainability:
