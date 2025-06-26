@@ -1,11 +1,22 @@
+// Load environment variables from .env file
+require('dotenv').config();
+
 const express = require('express');
+const cors = require('cors');
+const path = require('path');
 const app = express();
 
-// Import the upload router
-const uploadRouter = require('./upload');
+// Enable CORS for all routes
+app.use(cors());
 
-// Use the upload router for /upload endpoint
-app.use('/upload', uploadRouter);
+// Serve static files from the frontend directory
+app.use(express.static(path.join(__dirname, '../frontend')));
+
+// Import the R2 router
+const r2Router = require('./r2-routes');
+
+// Use the R2 router
+app.use('/r2', r2Router);
 
 // Example: start the server
 const PORT = process.env.PORT || 3000;

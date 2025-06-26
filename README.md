@@ -1,53 +1,104 @@
-# File Service
+# Cloudflare R2 File Service
 
-This is a simple Express.js file upload service that saves uploaded files to a Cloudflare R2 bucket using the AWS SDK.
+Layanan pengunggahan file sederhana menggunakan Express.js dengan antarmuka pengguna modern berbasis Tailwind CSS, yang khusus menggunakan Cloudflare R2 untuk penyimpanan cloud.
 
-## Features
-- Upload files via `/upload` endpoint
-- Files are saved in the root of the R2 bucket with a unique filename
-- Uses Multer for handling file uploads
+## Fitur Utama
+- Unggah file dengan drag & drop atau pemilihan file
+- Tampilkan daftar semua file yang diunggah dengan pagination
+- Unduh file langsung dari Cloudflare R2
+- Lihat file melalui URL publik R2 (jika dikonfigurasi)
+- Hapus file dari penyimpanan R2
+- Buat URL presigned untuk berbagi file sementara
+- Antarmuka pengguna modern dengan Tailwind CSS
+- CORS diaktifkan untuk permintaan lintas domain
 
-## Setup
+## Cara Setup
 
-### 1. Install dependencies
+### 1. Instal dependensi
 ```
 npm install
 ```
 
-### 2. Environment Variables
-Create a `.env` file in the project root with the following variables:
+### 2. Variabel Lingkungan
+Buat file `.env` di root proyek dengan variabel berikut:
 ```
-R2_ENDPOINT=<your_r2_endpoint>
-R2_ACCESS_KEY_ID=<your_access_key_id>
-R2_SECRET_ACCESS_KEY=<your_secret_access_key>
-R2_BUCKET_NAME=<your_bucket_name>
-PORT=3000 # or any port you prefer
+R2_ENDPOINT=https://your-account-id.r2.cloudflarestorage.com
+R2_ACCESS_KEY_ID=your_access_key_id
+R2_SECRET_ACCESS_KEY=your_secret_access_key
+R2_BUCKET_NAME=your_bucket_name
+R2_PUBLIC_URL=https://your-public-bucket-url.r2.dev (opsional)
+PORT=3000
 ```
 
-### 3. Start the server
+### 3. Jalankan server
 ```
 npm start
 ```
 
-## Usage
-Send a POST request to `/upload` with a file field named `file`.
+Aplikasi akan berjalan di port 3000 secara default, atau Anda dapat mengatur port kustom dengan variabel lingkungan PORT.
 
-Example using `curl`:
+## API Endpoints
+
+### Unggah file
 ```
-curl -F "file=@path/to/your/file.txt" http://localhost:3000/upload
+POST /r2/upload
+```
+Request: `multipart/form-data` dengan field file bernama `file`
+
+### Daftar semua file
+```
+GET /r2/files
+```
+Response: JSON dengan array files, token pagination, dan status truncation
+
+### Unduh file
+```
+GET /r2/download/:key
+```
+Response: File untuk diunduh
+
+### Dapatkan URL presigned (akses sementara)
+```
+GET /r2/presigned/:key
+```
+Response: JSON dengan URL sementara dan waktu kedaluwarsa
+
+### Hapus file
+```
+DELETE /r2/files/:key
+```
+Response: Pesan sukses
+
+## Frontend
+
+Frontend dapat diakses di `http://localhost:3000` dan menyediakan antarmuka yang user-friendly untuk:
+- Mengunggah file dengan dukungan drag & drop
+- Melihat semua file yang diunggah dengan pagination
+- Mengunduh file
+- Melihat file secara langsung (jika URL publik R2 dikonfigurasi)
+- Membuat link akses sementara (URL presigned)
+- Menghapus file
+
+## Struktur Aplikasi
+```
+file-service/
+├── .env.example          # Contoh konfigurasi lingkungan
+├── package.json          # Dependensi dan script npm
+├── README.md             # Dokumentasi
+├── src/
+│   ├── app.js            # File utama Express server
+│   ├── r2-client.js      # Konfigurasi dan fungsi client Cloudflare R2
+│   └── r2-routes.js      # Router API untuk operasi CRUD R2
+└── frontend/
+    ├── index.html        # Halaman redirect ke R2 UI
+    └── index.r2.html     # Antarmuka pengguna untuk R2
 ```
 
-## List Files Endpoint
-
-You can list all files in the bucket (with pagination) using:
-
-```
-GET /upload/files?limit=20&token=NEXT_TOKEN
-```
-- `limit` (optional): Number of files per page (default 20)
-- `token` (optional): Continuation token for pagination (from previous response)
-
-Example response:
+## Teknologi
+- Express.js - Framework backend
+- Multer - Penanganan upload file
+- AWS SDK v3 - Interaksi dengan Cloudflare R2
+- Tailwind CSS - Styling frontend
 ```json
 {
   "files": [

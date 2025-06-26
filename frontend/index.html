@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>R2 File Manager</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+  <style>
+    .drag-active {
+      border-color: #4f46e5;
+      background-color: rgba(79, 70, 229, 0.05);
+    }
+    .progress-bar {
+      transition: width 0.3s ease;
+    }
+    .toast {
+      animation: slide-in 0.3s ease-out, fade-out 0.5s ease-in forwards;
+      animation-delay: 0s, 2.5s;
+    }
+    @keyframes slide-in {
+      from { transform: translateY(100%); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    @keyframes fade-out {
+      from { opacity: 1; }
+      to { opacity: 0; }
+    }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+  <!-- Toast Notifications Container -->
+  <div id="toast-container" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2"></div>
+
+  <div class="container mx-auto px-4 py-8 max-w-6xl">
+    <header class="mb-8">
+      <h1 class="text-3xl font-bold text-indigo-700 mb-2 flex items-center">
+        <i class="fas fa-cloud-upload-alt mr-3"></i>
+        R2 File Manager
+      </h1>
+      <p class="text-gray-600">Upload, manage, and share your files securely with Cloudflare R2</p>
+    </header>
+
+    <!-- Upload Area -->
+    <div class="mb-8">
+      <div 
+        id="dropArea" 
+        class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer transition-all hover:border-indigo-500 hover:bg-indigo-50"
+      >
+        <i class="fas fa-cloud-upload-alt text-4xl mb-3 text-indigo-600"></i>
+        <h2 class="text-xl font-semibold mb-2">Drag & Drop Files Here</h2>
+        <p class="text-gray-500 mb-4">or click to browse your files</p>
+        <input type="file" id="fileInput" class="hidden" multiple>
+        <button id="browseButton" class="bg-indigo-600 text-white px-5 py-2 rounded-lg hover:bg-indigo-700 transition-colors">
+          <i class="fas fa-folder-open mr-2"></i> Browse Files
+        </button>
+      </div>
+      
+      <!-- Upload Progress Bar (hidden by default) -->
+      <div id="uploadProgress" class="mt-4 hidden">
+        <div class="flex justify-between mb-1">
+          <span id="uploadFileName" class="text-sm font-medium text-gray-700"></span>
+          <span id="uploadPercentage" class="text-sm font-medium text-gray-700">0%</span>
+        </div>
+        <div class="w-full bg-gray-200 rounded-full h-2.5">
+          <div id="uploadProgressBar" class="bg-indigo-600 h-2.5 rounded-full progress-bar" style="width: 0%"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- File Management -->
+    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-xl font-semibold text-gray-800">
+          <i class="fas fa-file-alt mr-2 text-indigo-600"></i> 
+          Your Files
+        </h2>
+        <div class="flex gap-2">
+          <div class="relative">
+            <input 
+              type="text" 
+              id="searchInput" 
+              placeholder="Search files..." 
+              class="py-2 pl-8 pr-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            >
+            <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+          </div>
+          <button id="refreshBtn" class="p-2 rounded-md hover:bg-gray-100" title="Refresh files">
+            <i class="fas fa-sync-alt text-indigo-600"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- File List Table -->
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Size</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+              <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="filesList" class="bg-white divide-y divide-gray-200">
+            <!-- Files will be loaded here -->
+            <tr>
+              <td colspan="4" class="px-6 py-8 text-center text-gray-500">
+                <i class="fas fa-spinner fa-spin mr-2"></i> Loading files...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      <div id="pagination" class="mt-4 flex justify-between items-center">
+        <div class="text-sm text-gray-700">
+          <span id="fileCount">0</span> files
+        </div>
+        <div class="flex gap-2">
+          <button 
+            id="prevPageBtn" 
+            class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled
+          >
+            <i class="fas fa-chevron-left mr-1"></i> Previous
+          </button>
+          <button 
+            id="nextPageBtn" 
+            class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled
+          >
+            Next <i class="fas fa-chevron-right ml-1"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Share Link Modal (hidden by default) -->
+    <div id="shareModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+      <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-lg font-semibold text-gray-900">Share File</h3>
+          <button id="closeShareModal" class="text-gray-500 hover:text-gray-700">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div>
+          <p class="text-sm text-gray-600 mb-2">Anyone with this link can access this file:</p>
+          <div class="flex mb-4">
+            <input 
+              id="shareLink" 
+              type="text" 
+              readonly 
+              class="flex-grow px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            >
+            <button 
+              id="copyLinkBtn" 
+              class="bg-indigo-600 text-white px-4 py-2 rounded-r-md hover:bg-indigo-700 transition-colors"
+            >
+              <i class="fas fa-copy"></i>
+            </button>
+          </div>
+          <div class="mb-4">
+            <label class="text-sm text-gray-600 mb-1 block">Link expires in:</label>
+            <select 
+              id="expirationSelect" 
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            >
+              <option value="3600">1 hour</option>
+              <option value="21600">6 hours</option>
+              <option value="86400">1 day</option>
+              <option value="604800">1 week</option>
+            </select>
+          </div>
+          <div class="flex justify-end">
+            <button 
+              id="generateLinkBtn" 
+              class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition-colors"
+            >
+              <i class="fas fa-link mr-2"></i> Generate New Link
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // State variables
+      let currentFilesList = [];
+      let nextToken = null;
+      let currentFileKey = null; // For sharing modal
+      
+      // DOM Elements
+      const dropArea = document.getElementById('dropArea');
+      const fileInput = document.getElementById('fileInput');
+      const browseButton = document.getElementById('browseButton');
+      const uploadProgress = document.getElementById('uploadProgress');
+      const uploadFileName = document.getElementById('uploadFileName');
+      const uploadPercentage = document.getElementById('uploadPercentage');
+      const uploadProgressBar = document.getElementById('uploadProgressBar');
+      const filesList = document.getElementById('filesList');
+      const refreshBtn = document.getElementById('refreshBtn');
+      const fileCount = document.getElementById('fileCount');
+      const prevPageBtn = document.getElementById('prevPageBtn');
+      const nextPageBtn = document.getElementById('nextPageBtn');
+      const searchInput = document.getElementById('searchInput');
+      
+      // Share Modal Elements
+      const shareModal = document.getElementById('shareModal');
+      const closeShareModal = document.getElementById('closeShareModal');
+      const shareLink = document.getElementById('shareLink');
+      const copyLinkBtn = document.getElementById('copyLinkBtn');
+      const expirationSelect = document.getElementById('expirationSelect');
+      const generateLinkBtn = document.getElementById('generateLinkBtn');
+      
+      // Pagination state
+      let paginationHistory = [];
+      let currentPrefix = '';
+
+      // File Upload Events
+      browseButton.addEventListener('click', () => fileInput.click());
+      
+      fileInput.addEventListener('change', (e) => {
+        if (e.target.files.length > 0) {
+          handleFiles(e.target.files);
+        }
+      });
+      
+      // Drag and Drop Functionality
+      ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        dropArea.addEventListener(eventName, preventDefaults, false);
+      });
+      
+      function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      
+      ['dragenter', 'dragover'].forEach(eventName => {
+        dropArea.addEventListener(eventName, () => {
+          dropArea.classList.add('drag-active');
+        });
+      });
+      
+      ['dragleave', 'drop'].forEach(eventName => {
+        dropArea.addEventListener(eventName, () => {
+          dropArea.classList.remove('drag-active');
+        });
+      });
+      
+      dropArea.addEventListener('drop', (e) => {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        handleFiles(files);
+      });
+      
+      // Handle file upload
+      function handleFiles(files) {
+        Array.from(files).forEach(file => {
+          uploadFile(file);
+        });
+      }
+      
+      async function uploadFile(file) {
+        // Show upload progress
+        uploadProgress.classList.remove('hidden');
+        uploadFileName.textContent = file.name;
+        uploadPercentage.textContent = '0%';
+        uploadProgressBar.style.width = '0%';
+        
+        const formData = new FormData();
+        formData.append('file', file);
+        
+        try {
+          const xhr = new XMLHttpRequest();
+          
+          xhr.upload.addEventListener('progress', (e) => {
+            if (e.lengthComputable) {
+              const percentComplete = Math.round((e.loaded / e.total) * 100);
+              uploadPercentage.textContent = percentComplete + '%';
+              uploadProgressBar.style.width = percentComplete + '%';
+            }
+          });
+          
+          xhr.addEventListener('load', () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+              try {
+                const response = JSON.parse(xhr.responseText);
+                showToast('success', `File ${file.name} uploaded successfully!`);
+                loadFiles(); // Refresh the file list
+                
+                // Hide progress after a short delay
+                setTimeout(() => {
+                  uploadProgress.classList.add('hidden');
+                }, 1000);
+              } catch (parseError) {
+                showToast('error', 'Upload completed but response was invalid');
+                uploadProgress.classList.add('hidden');
+              }
+            } else {
+              try {
+                const errorResponse = JSON.parse(xhr.responseText);
+                showToast('error', `Upload failed: ${errorResponse.error || xhr.statusText}`);
+              } catch (parseError) {
+                showToast('error', `Upload failed: ${xhr.statusText}`);
+              }
+              uploadProgress.classList.add('hidden');
+            }
+          });
+          
+          xhr.addEventListener('error', () => {
+            showToast('error', 'Upload failed. Please check your connection and try again.');
+            uploadProgress.classList.add('hidden');
+          });
+          
+          xhr.addEventListener('timeout', () => {
+            showToast('error', 'Upload timed out. Please try again.');
+            uploadProgress.classList.add('hidden');
+          });
+          
+          xhr.timeout = 60000; // 60 second timeout
+          xhr.open('POST', '/r2/upload');
+          xhr.send(formData);
+        } catch (err) {
+          showToast('error', 'Upload failed: ' + err.message);
+          uploadProgress.classList.add('hidden');
+        }
+      }
+      
+      // Load files from the server
+      async function loadFiles(token = null, prefix = '') {
+        try {
+          filesList.innerHTML = `
+            <tr>
+              <td colspan="4" class="px-6 py-8 text-center text-gray-500">
+                <i class="fas fa-spinner fa-spin mr-2"></i> Loading files...
+              </td>
+            </tr>
+          `;
+          
+          let url = `/r2/files?limit=10`;
+          if (token) url += `&token=${encodeURIComponent(token)}`;
+          if (prefix) url += `&prefix=${encodeURIComponent(prefix)}`;
+          
+          const response = await fetch(url);
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ error: response.statusText }));
+            throw new Error(errorData.error || 'Failed to load files');
+          }
+          
+          const data = await response.json();
+          currentFilesList = data.files || [];
+          nextToken = data.nextToken;
+          currentPrefix = prefix;
+          
+          // Update pagination buttons
+          prevPageBtn.disabled = paginationHistory.length === 0;
+          nextPageBtn.disabled = !nextToken;
+          
+          // Display files
+          if (currentFilesList.length === 0) {
+            filesList.innerHTML = `
+              <tr>
+                <td colspan="4" class="px-6 py-8 text-center text-gray-500">
+                  <i class="fas fa-folder-open mr-2"></i> ${prefix ? 'No files found matching your search' : 'No files found'}
+                </td>
+              </tr>
+            `;
+          } else {
+            filesList.innerHTML = currentFilesList.map(file => {
+              // Extract the original filename (remove UUID prefix)
+              const originalName = file.key.includes('-') ? file.key.split('-').slice(1).join('-') : file.key;
+              const fileExt = originalName.split('.').pop().toLowerCase();
+              
+              // Determine icon based on file extension
+              let icon = 'fa-file';
+              if (['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp'].includes(fileExt)) {
+                icon = 'fa-file-image';
+              } else if (['pdf'].includes(fileExt)) {
+                icon = 'fa-file-pdf';
+              } else if (['doc', 'docx'].includes(fileExt)) {
+                icon = 'fa-file-word';
+              } else if (['xls', 'xlsx'].includes(fileExt)) {
+                icon = 'fa-file-excel';
+              } else if (['mp3', 'wav', 'ogg'].includes(fileExt)) {
+                icon = 'fa-file-audio';
+              } else if (['mp4', 'avi', 'mov', 'webm'].includes(fileExt)) {
+                icon = 'fa-file-video';
+              } else if (['zip', 'rar', '7z', 'tar', 'gz'].includes(fileExt)) {
+                icon = 'fa-file-archive';
+              } else if (['html', 'css', 'js', 'php', 'py', 'java', 'json'].includes(fileExt)) {
+                icon = 'fa-file-code';
+              }
+              
+              // Format the file size
+              const size = formatFileSize(file.size);
+              
+              // Format the date
+              const date = new Date(file.lastModified).toLocaleDateString();
+              
+              return `
+                <tr>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="flex items-center">
+                      <i class="fas ${icon} text-gray-500 mr-3"></i>
+                      <span class="text-sm font-medium text-gray-900" title="${originalName}">${originalName}</span>
+                    </div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${size}</td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${date}</td>
+                  <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <div class="flex justify-end gap-2">
+                      <button class="download-btn p-1.5 rounded-md hover:bg-gray-100" data-key="${file.key}" title="Download">
+                        <i class="fas fa-download text-indigo-600"></i>
+                      </button>
+                      <button class="share-btn p-1.5 rounded-md hover:bg-gray-100" data-key="${file.key}" title="Share">
+                        <i class="fas fa-share-alt text-indigo-600"></i>
+                      </button>
+                      <button class="delete-btn p-1.5 rounded-md hover:bg-gray-100" data-key="${file.key}" title="Delete">
+                        <i class="fas fa-trash text-red-600"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              `;
+            }).join('');
+          }
+          
+          // Update file count
+          fileCount.textContent = currentFilesList.length;
+          
+          // Add event listeners to action buttons
+          addFileActionListeners();
+          
+        } catch (err) {
+          console.error('Load files error:', err);
+          showToast('error', 'Failed to load files: ' + err.message);
+          filesList.innerHTML = `
+            <tr>
+              <td colspan="4" class="px-6 py-8 text-center text-red-500">
+                <i class="fas fa-exclamation-circle mr-2"></i> Error loading files: ${err.message}
+              </td>
+            </tr>
+          `;
+        }
+      }
+      
+      // Format file size
+      function formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+      }
+      
+      // Add event listeners to file action buttons
+      function addFileActionListeners() {      // Download buttons
+      document.querySelectorAll('.download-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const key = btn.getAttribute('data-key');
+          // Use the API download endpoint which is more reliable
+          window.location.href = `/r2/download/${key}`;
+        });
+      });
+        
+        // Share buttons
+        document.querySelectorAll('.share-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const key = btn.getAttribute('data-key');
+            currentFileKey = key;
+            openShareModal(key);
+          });
+        });
+        
+        // Delete buttons
+        document.querySelectorAll('.delete-btn').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            const key = btn.getAttribute('data-key');
+            const originalName = key.split('-').slice(1).join('-');
+            
+            if (confirm(`Are you sure you want to delete ${originalName}?`)) {
+              try {
+                const response = await fetch(`/r2/files/${key}`, {
+                  method: 'DELETE'
+                });
+                
+                if (response.ok) {
+                  showToast('success', 'File deleted successfully');
+                  loadFiles(null, currentPrefix); // Refresh the file list
+                } else {
+                  const data = await response.json();
+                  showToast('error', data.error || 'Failed to delete file');
+                }
+              } catch (err) {
+                showToast('error', 'Failed to delete file: ' + err.message);
+              }
+            }
+          });
+        });
+      }
+      
+      // Pagination controls
+      prevPageBtn.addEventListener('click', () => {
+        if (paginationHistory.length > 0) {
+          const prevToken = paginationHistory.pop();
+          loadFiles(prevToken, currentPrefix);
+        }
+      });
+      
+      nextPageBtn.addEventListener('click', () => {
+        if (nextToken) {
+          paginationHistory.push(null); // Save current page token (null for first page)
+          loadFiles(nextToken, currentPrefix);
+        }
+      });
+      
+      // Refresh button
+      refreshBtn.addEventListener('click', () => {
+        loadFiles(null, currentPrefix);
+      });
+      
+      // Search functionality
+      searchInput.addEventListener('input', debounce(() => {
+        const searchTerm = searchInput.value.trim();
+        currentPrefix = searchTerm;
+        paginationHistory = []; // Reset pagination history
+        loadFiles(null, searchTerm);
+      }, 500));
+      
+      // Debounce function for search
+      function debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+          const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+          };
+          clearTimeout(timeout);
+          timeout = setTimeout(later, wait);
+        };
+      }
+      
+      // Share Modal Functions
+      function openShareModal(key) {
+        shareModal.classList.remove('hidden');
+        shareLink.value = ''; // Clear previous link
+        generatePresignedUrl(key);
+      }
+      
+      closeShareModal.addEventListener('click', () => {
+        shareModal.classList.add('hidden');
+      });
+      
+      // Close modal when clicking outside
+      shareModal.addEventListener('click', (e) => {
+        if (e.target === shareModal) {
+          shareModal.classList.add('hidden');
+        }
+      });
+      
+      // Generate presigned URL
+      async function generatePresignedUrl(key) {
+        try {
+          const expiresIn = expirationSelect.value;
+          const response = await fetch(`/r2/presigned/${key}?expires=${expiresIn}`);
+          
+          if (response.ok) {
+            const data = await response.json();
+            shareLink.value = data.url;
+          } else {
+            const data = await response.json();
+            showToast('error', data.error || 'Failed to generate share link');
+          }
+        } catch (err) {
+          showToast('error', 'Failed to generate share link: ' + err.message);
+        }
+      }
+      
+      // Generate new link button
+      generateLinkBtn.addEventListener('click', () => {
+        if (currentFileKey) {
+          generatePresignedUrl(currentFileKey);
+        }
+      });
+      
+      // Copy link button
+      copyLinkBtn.addEventListener('click', () => {
+        shareLink.select();
+        document.execCommand('copy');
+        showToast('success', 'Link copied to clipboard');
+      });
+      
+      // Expiration select change
+      expirationSelect.addEventListener('change', () => {
+        if (currentFileKey) {
+          generatePresignedUrl(currentFileKey);
+        }
+      });
+      
+      // Toast notification system
+      function showToast(type, message) {
+        const toastContainer = document.getElementById('toast-container');
+        
+        const toast = document.createElement('div');
+        toast.className = 'toast shadow-lg rounded-lg p-4 mb-2 flex items-center max-w-md w-full';
+        
+        if (type === 'success') {
+          toast.classList.add('bg-green-100', 'border-l-4', 'border-green-500', 'text-green-700');
+          toast.innerHTML = `<i class="fas fa-check-circle mr-2 text-green-500"></i> ${message}`;
+        } else if (type === 'error') {
+          toast.classList.add('bg-red-100', 'border-l-4', 'border-red-500', 'text-red-700');
+          toast.innerHTML = `<i class="fas fa-exclamation-circle mr-2 text-red-500"></i> ${message}`;
+        } else {
+          toast.classList.add('bg-blue-100', 'border-l-4', 'border-blue-500', 'text-blue-700');
+          toast.innerHTML = `<i class="fas fa-info-circle mr-2 text-blue-500"></i> ${message}`;
+        }
+        
+        toastContainer.appendChild(toast);
+        
+        // Remove toast after animation completes
+        setTimeout(() => {
+          toast.remove();
+        }, 3000);
+      }
+      
+      // Initial load
+      loadFiles();
+    });
+  </script>
+</body>
+</html>
