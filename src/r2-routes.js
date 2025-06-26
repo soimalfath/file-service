@@ -21,7 +21,7 @@ router.post('/upload', upload.single('file'), async (req, res) => {
     
     // Generate a unique filename
 		const uniqueName = `${crypto.randomUUID()}-${req.file.originalname}`;
-		const prefix = rocess.env.R2_BUCKET_NAME
+		const prefix = process.env.R2_BUCKET_NAME
     
     // Upload to R2
     const uploadResult = await R2.putObject({
