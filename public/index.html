@@ -9,7 +9,6 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Popper.js for smart popover positioning -->
     <script src="https://unpkg.com/@popperjs/core@2"></script>
     <style>
         :root {
@@ -88,10 +87,8 @@
 </head>
 <body class="bg-gray-50 min-h-screen">
 
-    <!-- Toast Container -->
     <div id="toast-container" class="fixed bottom-5 right-5 z-[100] flex flex-col gap-3"></div>
 
-    <!-- Image Preview Modal -->
     <div id="image-preview-modal" class="fixed inset-0 z-[90] flex items-center justify-center p-4 hidden opacity-0">
         <div class="relative max-w-4xl max-h-full">
             <img id="preview-image" src="" alt="Image Preview" class="rounded-lg shadow-2xl max-w-full max-h-[80vh]">
@@ -106,7 +103,6 @@
         </div>
     </div>
 
-    <!-- Confirmation Modal -->
     <div id="confirm-modal" class="fixed inset-0 z-[95] flex items-center justify-center p-4 hidden opacity-0">
         <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-sm">
             <h3 id="confirm-title" class="text-lg font-bold text-gray-800">Anda Yakin?</h3>
@@ -118,12 +114,9 @@
         </div>
     </div>
 
-    <!-- Main Content -->
     <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-8 max-w-7xl">
-        <!-- Header -->
         <header class="bg-white shadow-md rounded-xl p-4 sm:p-6 mb-8">
             <div class="flex flex-wrap justify-between items-center gap-y-4">
-                <!-- Title part -->
                 <div class="flex items-center">
                     <span class="text-white bg-indigo-600 rounded-lg p-2 mr-3">
                         <i class="fas fa-cloud"></i>
@@ -136,7 +129,6 @@
                     </div>
                 </div>
                 
-                <!-- Actions part -->
                 <div id="dropArea" class="w-full sm:w-auto flex items-center justify-end gap-2 border-2 border-dashed border-gray-300 rounded-lg p-2 transition-all hover:border-indigo-500 hover:bg-indigo-50">
                     <input type="file" id="fileInput" class="hidden" multiple>
                     <button id="browseButton" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors text-sm font-semibold flex-grow sm:flex-grow-0 flex items-center justify-center gap-2">
@@ -154,7 +146,6 @@
             </div>
         </header>
 
-        <!-- Filter and Search Bar -->
         <div class="bg-white rounded-xl shadow-md p-4 mb-6 sticky top-4 z-20">
             <div class="flex flex-col md:flex-row gap-4 justify-between">
                 <div class="flex items-center flex-wrap gap-2">
@@ -170,7 +161,6 @@
                         <input type="text" id="searchInput" placeholder="Cari file..." class="w-full py-2 pl-10 pr-4 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
                         <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
                     </div>
-                    <!-- Prefix only checkbox removed -->
                     <button id="refreshBtn" class="p-2 w-10 h-10 flex items-center justify-center rounded-full bg-white border border-gray-300 hover:bg-gray-100" title="Muat Ulang">
                         <i class="fas fa-sync-alt text-indigo-600"></i>
                     </button>
@@ -178,7 +168,6 @@
             </div>
         </div>
 
-        <!-- Files Grid -->
         <div id="filesGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 lg:gap-6">
             <div id="loading-indicator" class="col-span-full text-center py-16 text-gray-500">
                 <i class="fas fa-spinner fa-spin text-3xl mb-4"></i>
@@ -191,7 +180,6 @@
             <p>Coba unggah beberapa file atau ubah filter Anda.</p>
         </div>
 
-        <!-- Pagination -->
         <div id="pagination-controls" class="text-center mt-8">
             <button id="loadMoreBtn" class="bg-white text-indigo-600 font-semibold px-6 py-3 rounded-full shadow-md hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed hidden">
                 Muat Lebih Banyak
@@ -199,7 +187,6 @@
         </div>
     </div>
 
-    <!-- Share Popover -->
     <div id="share-popover" class="hidden absolute z-50 bg-white rounded-lg shadow-xl border border-gray-200 p-2 flex flex-col gap-1 min-w-[220px] max-w-[280px] opacity-0 scale-95">
         <button id="copy-cdn-btn" class="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md flex items-center gap-2">
             <i class="fas fa-link fa-fw"></i> <span class="truncate">Salin URL Publik</span>
@@ -272,20 +259,27 @@
 
             // --- Helper: fetch with auto refresh ---
             async function fetchWithAutoRefresh(url, options = {}, retry = true) {
-                let response = await fetch(url, { ...options, credentials: 'include' });
-                if (response.status === 401 && retry) {
-                    // Coba refresh token
-                    const refreshResp = await fetch('/auth/refresh', { method: 'POST', credentials: 'include' });
-                    if (refreshResp.ok) {
-                        // Coba ulangi request awal
-                        response = await fetch(url, { ...options, credentials: 'include' });
-                        if (response.status !== 401) return response;
+                // Set default timeout to 10 minutes for upload, 30s for others
+                let timeoutMs = 30000;
+                if (url.includes('/upload')) timeoutMs = 10 * 60 * 1000;
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+                try {
+                    let response = await fetch(url, { ...options, credentials: 'include', signal: controller.signal });
+                    if (response.status === 401 && retry) {
+                        // Coba refresh token
+                        const refreshResp = await fetch('/auth/refresh', { method: 'POST', credentials: 'include' });
+                        if (refreshResp.ok) {
+                            response = await fetch(url, { ...options, credentials: 'include', signal: controller.signal });
+                            if (response.status !== 401) return response;
+                        }
+                        window.location.href = '/login.html';
+                        throw new Error('Session expired, please login again.');
                     }
-                    // Jika gagal refresh, redirect ke login
-                    window.location.href = '/login.html';
-                    throw new Error('Session expired, please login again.');
+                    return response;
+                } finally {
+                    clearTimeout(timeoutId);
                 }
-                return response;
             }
 
             // --- File Loading & Display ---
@@ -313,7 +307,6 @@
                     if (!response.ok) throw new Error(`HTTP ${response.status}`);
                     const result = await response.json();
 
-                    // Adaptasi struktur response agar tetap kompatibel
                     let files = [];
                     if (Array.isArray(result.files)) {
                         files = result.files;
@@ -399,8 +392,8 @@
                     <div class="p-3 flex flex-col flex-grow">
                         <h3 class="font-semibold text-gray-800 text-sm truncate" title="${file.key}">${file.key}</h3>
                         <div class="mt-auto pt-2 flex justify-between items-center text-xs text-gray-500">
-                           <span>${fileSize}</span>
-                           <span>${fileDate}</span>
+                            <span>${fileSize}</span>
+                            <span>${fileDate}</span>
                         </div>
                     </div>
                 `;
@@ -505,35 +498,71 @@
                 }
             }
             
-             async function uploadFiles(files) {
-                 if (files.length === 0) return;
-                 let successCount = 0;
-                 const uploadPromises = files.map(async file => {
-                     const maxSize = 50 * 1024 * 1024; // 50MB
-                     if (file.size > maxSize) {
-                         showToast(`File ${file.name} terlalu besar (> 50MB).`, 'error');
-                         return;
-                     }
-                     const formData = new FormData();
-                     formData.append('file', file);
-                     try {
-                         const response = await fetchWithAutoRefresh('/r2/upload', { method: 'POST', body: formData });
-                         const result = await response.json();
-                         if (result.success) {
-                             showToast(`${file.name} berhasil diunggah!`, 'success');
-                             successCount++;
-                         } else {
-                             throw new Error(result.error);
-                         }
-                     } catch (error) {
-                         showToast(`Gagal mengunggah ${file.name}: ${error.message}`, 'error');
-                     }
-                 });
-                 await Promise.all(uploadPromises);
-                 if (successCount > 0) {
-                     loadFiles(true);
-                 }
-             }
+            // --- FUNGSI UPLOADFILES YANG TELAH DIPERBARUI ---
+            async function uploadFiles(files) {
+                if (files.length === 0) return;
+
+                // Sembunyikan pesan "Tidak ada file" jika ada
+                emptyStateDiv.classList.add('hidden');
+
+                // Tampilkan kartu placeholder untuk setiap file
+                const placeholderCards = files.map(file => {
+                    const card = createUploadingFileCard(file);
+                    filesGrid.prepend(card); // Prepend agar muncul di paling atas
+                    return { file, card };
+                });
+
+                // Buat array promise untuk setiap unggahan file
+                const uploadPromises = placeholderCards.map(async ({ file, card }) => {
+                    const maxSize = 50 * 1024 * 1024; // 50MB
+                    if (file.size > maxSize) {
+                        showToast(`File ${file.name} terlalu besar (> 50MB).`, 'error');
+                        card.innerHTML = `
+                            <div class="p-4 text-center text-red-600">
+                                <i class="fas fa-exclamation-circle text-2xl mb-2"></i>
+                                <p class="text-xs font-bold truncate" title="${file.name}">${file.name}</p>
+                                <p class="text-xs">Terlalu Besar</p>
+                            </div>`;
+                        return; // Lewati file ini
+                    }
+
+                    const formData = new FormData();
+                    formData.append('file', file);
+
+                    try {
+                        const response = await fetchWithAutoRefresh('/r2/upload', { method: 'POST', body: formData });
+                        const result = await response.json();
+                        
+                        if (result.success && result.data && result.data.file) {
+                            const newFile = result.data.file;
+                            const newCard = createFileCard(newFile);
+                            
+                            // Ganti placeholder dengan kartu yang sebenarnya
+                            card.replaceWith(newCard);
+
+                            // Tambahkan ke data global dan perbarui hitungan
+                            allFiles.unshift(newFile); // Tambahkan ke awal array
+                            updateFilterCounts();
+                            showToast(`${file.name} berhasil diunggah!`, 'success');
+                        } else {
+                            throw new Error(result.error || 'Respons server tidak valid');
+                        }
+                    } catch (error) {
+                        showToast(`Gagal mengunggah ${file.name}: ${error.message}`, 'error');
+                        // Perbarui kartu untuk menunjukkan error
+                        card.classList.add('border-red-500');
+                        card.innerHTML = `
+                            <div class="p-4 text-center text-red-600 flex flex-col items-center justify-center h-full">
+                                <i class="fas fa-exclamation-triangle text-3xl mb-2"></i>
+                                <p class="font-semibold text-xs truncate" title="${file.name}">${file.name}</p>
+                                <p class="text-xs">Gagal</p>
+                            </div>`;
+                    }
+                });
+
+                // Tunggu semua proses unggah (berhasil atau gagal) selesai
+                await Promise.all(uploadPromises);
+            }
 
             // --- Modals & Popovers ---
             function showConfirmModal(title, message, callback) {
@@ -636,6 +665,31 @@
             }
 
             // --- Utility Functions ---
+            // BARU: Fungsi untuk membuat kartu file yang sedang diunggah
+            function createUploadingFileCard(file) {
+                const div = document.createElement('div');
+                // Beri ID unik untuk kartu ini agar mudah ditemukan dan diganti nanti
+                div.id = `uploading-${file.name}-${file.size}`;
+                div.className = 'file-card bg-white rounded-lg shadow-sm overflow-hidden flex flex-col border-2 border-indigo-200';
+                const fileName = file.name.length > 25 ? `${file.name.substring(0, 22)}...` : file.name;
+
+                div.innerHTML = `
+                    <div class="aspect-square w-full bg-gray-50 flex items-center justify-center">
+                        <i class="fas fa-spinner fa-spin text-indigo-500 text-4xl"></i>
+                    </div>
+                    <div class="p-3 flex flex-col flex-grow">
+                        <h3 class="font-semibold text-gray-700 text-sm truncate" title="${file.name}">${fileName}</h3>
+                        <div class="mt-auto pt-2 flex flex-col items-center text-xs text-gray-500">
+                            <span>Mengunggah...</span>
+                            <div class="w-full bg-gray-200 rounded-full h-1.5 mt-2">
+                               <div class="bg-indigo-500 h-1.5 rounded-full animate-pulse"></div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                return div;
+            }
+
             function formatFileSize(bytes) {
                 if (bytes === 0) return '0 Bytes';
                 const k = 1024;
