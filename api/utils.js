@@ -122,6 +122,24 @@ function authenticateApiKey(req) {
   return true;
 }
 
+// Authenticate with either JWT session OR API key (for hybrid endpoints)
+function authenticateHybrid(req) {
+  try {
+    // First try JWT session authentication
+    const result = authenticateToken(req);
+    return result; // Returns { user: {username}, newAccessToken: null|string }
+  } catch (jwtError) {
+    try {
+      // If JWT fails, try API key authentication
+      authenticateApiKey(req);
+      return { user: { username: 'api_user' }, newAccessToken: null }; // API key auth doesn't need token refresh
+    } catch (apiError) {
+      // If both fail, throw the API key error (more informative for external users)
+      throw new Error('Authentication required: either login session or valid API key');
+    }
+  }
+}
+
 // CORS handler
 function handleCors(req, res) {
   res.setHeader('Access-Control-Allow-Credentials', 'true');
@@ -162,6 +180,7 @@ module.exports = {
   clearCookie,
   authenticateToken,
   authenticateApiKey,
+  authenticateHybrid,
   handleCors,
   errorResponse,
   successResponse

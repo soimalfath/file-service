@@ -1,157 +1,186 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>API Documentation - R2 File Manager</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
-  <style>
-    :root {
-      --primary-color: #4f46e5;
-      --primary-hover: #4338ca;
-    }
-    .toast {
-      animation: slide-in 0.3s ease-out, fade-out 0.5s ease-in forwards;
-      animation-delay: 0s, 3.5s;
-    }
-    @keyframes slide-in {
-      from { transform: translateY(100%); opacity: 0; }
-      to { transform: translateY(0); opacity: 1; }
-    }
-    @keyframes fade-out {
-      from { opacity: 1; }
-      to { opacity: 0; }
-    }
-    .endpoint-card {
-      transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
-    }
-    .endpoint-card:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-    }
-    pre code {
-      font-size: 0.875rem;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Documentation - R2 File Manager</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #4f46e5;
+            --primary-hover: #4338ca;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* Toast animation */
+        .toast {
+            animation: slide-in 0.3s ease-out, fade-out 0.5s ease-in forwards;
+            animation-delay: 0s, 3.5s;
+        }
+
+        @keyframes slide-in {
+            from {
+                transform: translateY(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes fade-out {
+            from {
+                opacity: 1;
+            }
+            to {
+                opacity: 0;
+            }
+        }
+
+        /* Endpoint card hover effect */
+        .endpoint-card {
+            transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
+        }
+
+        .endpoint-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        }
+
+        /* Code block styling */
+        pre[class*="language-"] {
+            border: none;
+            box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+        }
+    </style>
 </head>
-<body class="bg-gray-100 min-h-screen font-sans">
-  
-  <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-3"></div>
+<body class="bg-gray-50 min-h-screen">
 
-  <div class="container mx-auto px-4 py-6 max-w-6xl">
-    <!-- Header -->
-    <header class="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center">
-      <div>
-        <h1 class="text-3xl font-bold text-gray-800 mb-2 flex items-center">
-          <i class="fas fa-code mr-3 text-indigo-600"></i>
-          API Documentation
-        </h1>
-        <p class="text-gray-600">REST API for Qiblat File Manager - External Application Integration</p>
-      </div>
-      <div class="flex items-center gap-3 mt-4 md:mt-0">
-        <button id="generateApiKeyBtn" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors text-sm font-semibold">
-          <i class="fas fa-key mr-2"></i> Show API Key
-        </button>
-        <a href="/" class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors text-sm font-semibold">
-          <i class="fas fa-arrow-left mr-2"></i> Back to Files
-        </a>
-      </div>
-    </header>
+    <!-- Toast container for notifications -->
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-3"></div>
 
-    <!-- API Key Section -->
-    <div id="apiKeySection" class="bg-white rounded-lg shadow-sm p-6 mb-8 hidden">
-      <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
-        <i class="fas fa-key mr-2 text-yellow-500"></i>
-        API Authentication
-      </h2>
-      <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
-        <div class="flex items-start">
-          <i class="fas fa-exclamation-triangle text-yellow-500 mt-1 mr-3"></i>
-          <div>
-            <h3 class="font-semibold text-yellow-800">Security Warning</h3>
-            <p class="text-yellow-700 text-sm">Keep your API key secure. Do not share it or commit it to version control.</p>
-          </div>
-        </div>
-      </div>
-      <div class="space-y-4">
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">Your API Key</label>
-          <div class="flex items-center gap-2">
-            <input type="password" id="apiKeyDisplay" readonly class="flex-1 px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 font-mono text-sm">
-            <button id="toggleApiKeyBtn" class="p-2 text-gray-500 hover:text-gray-700">
-              <i class="fas fa-eye"></i>
-            </button>
-            <button id="copyApiKeyBtn" class="bg-green-500 text-white px-3 py-2 rounded-lg hover:bg-green-600 transition-colors text-sm">
-              <i class="fas fa-copy mr-1"></i> Copy
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
+    <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-8 max-w-7xl">
+        <!-- Header Section -->
+        <header class="bg-white shadow-md rounded-xl p-6 mb-8">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                    <h1 class="text-2xl md:text-3xl font-bold text-gray-800 flex items-center">
+                        <span class="text-white bg-indigo-600 rounded-lg p-2 mr-4">
+                            <i class="fas fa-code"></i>
+                        </span>
+                        API Documentation
+                    </h1>
+                    <p class="text-gray-500 mt-2 ml-12">REST API for Qiblat File Manager - External Application Integration</p>
+                </div>
+                <div class="flex items-center gap-2 flex-shrink-0 self-end sm:self-center">
+                    <button id="generateApiKeyBtn" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors text-sm font-semibold flex items-center gap-2">
+                        <i class="fas fa-key"></i>
+                        <span>Show API Key</span>
+                    </button>
+                    <a href="/" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors text-sm font-semibold flex items-center gap-2">
+                        <i class="fas fa-arrow-left"></i>
+                        <span>Back</span>
+                    </a>
+                </div>
+            </div>
+        </header>
 
-    <!-- Base URL -->
-    <div class="bg-white rounded-lg shadow-sm p-6 mb-8">
-      <h2 class="text-xl font-bold text-gray-800 mb-4">Base URL</h2>
-      <div class="bg-gray-50 rounded-lg p-4 font-mono text-sm">
-        <span class="text-gray-600">Base URL:</span> <span class="text-indigo-600 font-semibold" id="baseUrl">http://localhost:3000/api</span>
-        <button id="copyBaseUrlBtn" class="ml-2 text-gray-500 hover:text-gray-700">
-          <i class="fas fa-copy"></i>
-        </button>
-      </div>
-    </div>
+        <!-- API Key Section -->
+        <div id="apiKeySection" class="bg-white rounded-xl shadow-md p-6 mb-8 hidden">
+            <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                <i class="fas fa-key mr-3 text-yellow-500"></i>
+                API Authentication
+            </h2>
+            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+                <div class="flex items-start">
+                    <i class="fas fa-exclamation-triangle text-yellow-500 mt-1 mr-3 flex-shrink-0"></i>
+                    <div>
+                        <h3 class="font-semibold text-yellow-800">Security Warning</h3>
+                        <p class="text-yellow-700 text-sm">Keep your API key secure. Do not share it or commit it to version control.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Your API Key</label>
+                    <div class="flex items-center gap-2">
+                        <input type="password" id="apiKeyDisplay" readonly class="flex-1 px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 font-mono text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                        <button id="toggleApiKeyBtn" class="p-2 text-gray-500 hover:text-gray-800" aria-label="Toggle API Key Visibility">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button id="copyApiKeyBtn" class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors text-sm font-semibold flex items-center gap-2">
+                            <i class="fas fa-copy"></i>
+                            <span>Copy</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-    <!-- Authentication -->
-    <div class="bg-white rounded-lg shadow-sm p-6 mb-8">
-      <h2 class="text-xl font-bold text-gray-800 mb-4">Authentication</h2>
-      <p class="text-gray-600 mb-4">All API endpoints require authentication using an API key. Include the API key in one of the following ways:</p>
-      
-      <div class="space-y-4">
-        <div>
-          <h3 class="font-semibold text-gray-700 mb-2">Option 1: X-API-Key Header</h3>
-          <pre class="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto"><code class="language-bash">curl -H "X-API-Key: your-api-key" \
-     -X POST \
-     http://localhost:3000/api/upload</code></pre>
+        <!-- Base URL -->
+        <div class="bg-white rounded-xl shadow-md p-6 mb-8">
+            <h2 class="text-xl font-bold text-gray-800 mb-4">Base URL</h2>
+            <div class="bg-gray-100 rounded-lg p-4 flex items-center justify-between">
+                <p class="font-mono text-sm text-gray-800 overflow-x-auto">
+                    <span class="text-gray-500">Base URL:</span> <span class="text-indigo-600 font-semibold" id="baseUrl">http://localhost:3000/api</span>
+                </p>
+                <button id="copyBaseUrlBtn" class="ml-4 text-gray-500 hover:text-gray-800 flex-shrink-0" aria-label="Copy Base URL">
+                    <i class="fas fa-copy"></i>
+                </button>
+            </div>
         </div>
-        
-        <div>
-          <h3 class="font-semibold text-gray-700 mb-2">Option 2: Authorization Bearer</h3>
-          <pre class="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto"><code class="language-bash">curl -H "Authorization: Bearer your-api-key" \
-     -X POST \
-     http://localhost:3000/api/upload</code></pre>
-        </div>
-      </div>
-    </div>
 
-    <!-- Endpoints -->
-    <div class="space-y-6">
-      <!-- Upload Single File -->
-      <div class="endpoint-card bg-white rounded-lg shadow-sm p-6">
-        <div class="flex items-center justify-between mb-4">
-          <h3 class="text-xl font-bold text-gray-800 flex items-center">
-            <span class="bg-green-100 text-green-700 px-2 py-1 rounded text-sm font-mono mr-3">POST</span>
-            Upload Single File
-          </h3>
-          <span class="text-sm text-gray-500">/api/upload</span>
+        <!-- Authentication -->
+        <div class="bg-white rounded-xl shadow-md p-6 mb-8">
+            <h2 class="text-xl font-bold text-gray-800 mb-4">Authentication</h2>
+            <p class="text-gray-600 mb-6">All API endpoints require authentication using an API key. Include the API key in one of the following ways:</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <h3 class="font-semibold text-gray-700 mb-2">Option 1: <code class="text-sm bg-gray-200 px-1 py-0.5 rounded">X-API-Key</code> Header</h3>
+                    <pre><code class="language-bash">curl -H "X-API-Key: your-api-key" \
+    -X POST \
+    http://localhost:3000/api/upload</code></pre>
+                </div>
+                <div>
+                    <h3 class="font-semibold text-gray-700 mb-2">Option 2: <code class="text-sm bg-gray-200 px-1 py-0.5 rounded">Authorization</code> Bearer</h3>
+                    <pre><code class="language-bash">curl -H "Authorization: Bearer your-api-key" \
+    -X POST \
+    http://localhost:3000/api/upload</code></pre>
+                </div>
+            </div>
         </div>
-        
-        <p class="text-gray-600 mb-4">Upload a single file to R2 storage.</p>
-        
-        <div class="grid md:grid-cols-2 gap-6">
-          <div>
-            <h4 class="font-semibold text-gray-700 mb-2">Request</h4>
-            <pre class="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto text-sm"><code class="language-bash">curl -X POST \
-  -H "X-API-Key: your-api-key" \
-  -F "file=@/path/to/your/file.jpg" \
-  http://localhost:3000/api/upload</code></pre>
-          </div>
-          
-          <div>
-            <h4 class="font-semibold text-gray-700 mb-2">Response</h4>
-            <pre class="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto text-sm"><code class="language-json">{
+
+        <!-- Endpoints -->
+        <div class="space-y-6">
+            <!-- Upload Single File -->
+            <div class="endpoint-card bg-white rounded-xl shadow-md p-6">
+                <div class="flex flex-col md:flex-row items-start md:items-center justify-between mb-4 gap-2">
+                    <h3 class="text-xl font-bold text-gray-800 flex items-center">
+                        <span class="bg-green-100 text-green-800 px-2.5 py-1 rounded-md text-sm font-mono mr-4">POST</span>
+                        Upload Single File
+                    </h3>
+                    <span class="text-sm text-gray-500 font-mono bg-gray-100 px-2 py-1 rounded-md">/api/upload</span>
+                </div>
+                <p class="text-gray-600 mb-6">Upload a single file to R2 storage.</p>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div>
+                        <h4 class="font-semibold text-gray-700 mb-2">Request</h4>
+                        <pre><code class="language-bash">curl -X POST \
+ -H "X-API-Key: your-api-key" \
+ -F "file=@/path/to/your/file.jpg" \
+ http://localhost:3000/api/upload</code></pre>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold text-gray-700 mb-2">Response</h4>
+                        <pre><code class="language-json">{
   "success": true,
   "message": "File uploaded successfully",
   "data": {
@@ -161,39 +190,36 @@
     "size": 245760,
     "contentType": "image/jpeg",
     "publicUrl": "https://...",
-    "downloadUrl": "/r2/download/...",
+    "downloadUrl": "/api/files/download/...",
     "uploadedAt": "2023-12-31T12:00:00.000Z"
   }
 }</code></pre>
-          </div>
-        </div>
-      </div>
+                    </div>
+                </div>
+            </div>
 
-      <!-- Upload Multiple Files -->
-      <div class="endpoint-card bg-white rounded-lg shadow-sm p-6">
-        <div class="flex items-center justify-between mb-4">
-          <h3 class="text-xl font-bold text-gray-800 flex items-center">
-            <span class="bg-green-100 text-green-700 px-2 py-1 rounded text-sm font-mono mr-3">POST</span>
-            Upload Multiple Files
-          </h3>
-          <span class="text-sm text-gray-500">/api/upload-multiple</span>
-        </div>
-        
-        <p class="text-gray-600 mb-4">Upload multiple files (max 10) to R2 storage.</p>
-        
-        <div class="grid md:grid-cols-2 gap-6">
-          <div>
-            <h4 class="font-semibold text-gray-700 mb-2">Request</h4>
-            <pre class="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto text-sm"><code class="language-bash">curl -X POST \
-  -H "X-API-Key: your-api-key" \
-  -F "files=@/path/to/file1.jpg" \
-  -F "files=@/path/to/file2.png" \
-  http://localhost:3000/api/upload-multiple</code></pre>
-          </div>
-          
-          <div>
-            <h4 class="font-semibold text-gray-700 mb-2">Response</h4>
-            <pre class="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto text-sm"><code class="language-json">{
+            <!-- More endpoints... -->
+             <div class="endpoint-card bg-white rounded-xl shadow-md p-6">
+                <div class="flex flex-col md:flex-row items-start md:items-center justify-between mb-4 gap-2">
+                    <h3 class="text-xl font-bold text-gray-800 flex items-center">
+                        <span class="bg-green-100 text-green-800 px-2.5 py-1 rounded-md text-sm font-mono mr-4">POST</span>
+                        Upload Multiple Files
+                    </h3>
+                    <span class="text-sm text-gray-500 font-mono bg-gray-100 px-2 py-1 rounded-md">/api/upload-multiple</span>
+                </div>
+                <p class="text-gray-600 mb-6">Upload multiple files (max 10) to R2 storage.</p>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div>
+                        <h4 class="font-semibold text-gray-700 mb-2">Request</h4>
+                        <pre><code class="language-bash">curl -X POST \
+ -H "X-API-Key: your-api-key" \
+ -F "files=@/path/to/file1.jpg" \
+ -F "files=@/path/to/file2.png" \
+ http://localhost:3000/api/upload-multiple</code></pre>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold text-gray-700 mb-2">Response</h4>
+                        <pre><code class="language-json">{
   "success": true,
   "message": "2 files uploaded successfully",
   "data": {
@@ -206,49 +232,43 @@
     }
   }
 }</code></pre>
-          </div>
-        </div>
-      </div>
+                    </div>
+                </div>
+            </div>
 
-      <!-- List Files -->
-      <div class="endpoint-card bg-white rounded-lg shadow-sm p-6">
-        <div class="flex items-center justify-between mb-4">
-          <h3 class="text-xl font-bold text-gray-800 flex items-center">
-            <span class="bg-blue-100 text-blue-700 px-2 py-1 rounded text-sm font-mono mr-3">GET</span>
-            List Files
-          </h3>
-          <span class="text-sm text-gray-500">/api/files</span>
-        </div>
-        
-        <p class="text-gray-600 mb-4">Get a list of all uploaded files with pagination support.</p>
-        
-        <div class="grid md:grid-cols-2 gap-6">
-          <div>
-            <h4 class="font-semibold text-gray-700 mb-2">Request</h4>
-            <pre class="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto text-sm"><code class="language-bash">curl -H "X-API-Key: your-api-key" \
-  "http://localhost:3000/api/files?limit=50&prefix=image"</code></pre>
-            
-            <h5 class="font-medium text-gray-600 mt-4 mb-2">Query Parameters</h5>
-            <ul class="text-sm text-gray-600 space-y-1">
-              <li><code class="bg-gray-100 px-1 rounded">limit</code> - Number of files to return (default: 100)</li>
-              <li><code class="bg-gray-100 px-1 rounded">token</code> - Next page token for pagination</li>
-              <li><code class="bg-gray-100 px-1 rounded">prefix</code> - Filter files by prefix</li>
-            </ul>
-          </div>
-          
-          <div>
-            <h4 class="font-semibold text-gray-700 mb-2">Response</h4>
-            <pre class="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto text-sm"><code class="language-json">{
+             <div class="endpoint-card bg-white rounded-xl shadow-md p-6">
+                <div class="flex flex-col md:flex-row items-start md:items-center justify-between mb-4 gap-2">
+                    <h3 class="text-xl font-bold text-gray-800 flex items-center">
+                        <span class="bg-blue-100 text-blue-800 px-2.5 py-1 rounded-md text-sm font-mono mr-4">GET</span>
+                        List Files
+                    </h3>
+                    <span class="text-sm text-gray-500 font-mono bg-gray-100 px-2 py-1 rounded-md">/api/files</span>
+                </div>
+                <p class="text-gray-600 mb-6">Get a list of all uploaded files with pagination support.</p>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div>
+                        <h4 class="font-semibold text-gray-700 mb-2">Request</h4>
+                        <pre><code class="language-bash">curl -H "X-API-Key: your-api-key" \
+ "http://localhost:3000/api/files?limit=50&prefix=image"</code></pre>
+                        <h5 class="font-semibold text-gray-700 mt-4 mb-2">Query Parameters</h5>
+                        <ul class="text-sm text-gray-600 space-y-2 list-disc list-inside">
+                            <li><code class="bg-gray-200 text-gray-800 px-1.5 py-0.5 rounded-md text-xs">limit</code> - Number of files to return (default: 100)</li>
+                            <li><code class="bg-gray-200 text-gray-800 px-1.5 py-0.5 rounded-md text-xs">token</code> - Next page token for pagination</li>
+                            <li><code class="bg-gray-200 text-gray-800 px-1.5 py-0.5 rounded-md text-xs">prefix</code> - Filter files by prefix</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold text-gray-700 mb-2">Response</h4>
+                        <pre><code class="language-json">{
   "success": true,
   "data": {
     "files": [
       {
         "key": "1640995200000-image.jpg",
-        "filename": "1640995200000-image.jpg",
         "size": 245760,
         "lastModified": "2023-12-31T12:00:00.000Z",
         "publicUrl": "https://...",
-        "downloadUrl": "/r2/download/..."
+        "downloadUrl": "/api/files/download/..."
       }
     ],
     "pagination": {
@@ -258,119 +278,231 @@
     }
   }
 }</code></pre>
-          </div>
-        </div>
-      </div>
+                    </div>
+                </div>
+            </div>
 
-      <!-- Delete File -->
-      <div class="endpoint-card bg-white rounded-lg shadow-sm p-6">
-        <div class="flex items-center justify-between mb-4">
-          <h3 class="text-xl font-bold text-gray-800 flex items-center">
-            <span class="bg-red-100 text-red-700 px-2 py-1 rounded text-sm font-mono mr-3">DELETE</span>
-            Delete File
-          </h3>
-          <span class="text-sm text-gray-500">/api/files/:key</span>
-        </div>
-        
-        <p class="text-gray-600 mb-4">Delete a file from R2 storage by its key.</p>
-        
-        <div class="grid md:grid-cols-2 gap-6">
-          <div>
-            <h4 class="font-semibold text-gray-700 mb-2">Request</h4>
-            <pre class="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto text-sm"><code class="language-bash">curl -X DELETE \
-  -H "X-API-Key: your-api-key" \
-  http://localhost:3000/api/files/1640995200000-image.jpg</code></pre>
-          </div>
-          
-          <div>
-            <h4 class="font-semibold text-gray-700 mb-2">Response</h4>
-            <pre class="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto text-sm"><code class="language-json">{
+            <div class="endpoint-card bg-white rounded-xl shadow-md p-6">
+                <div class="flex flex-col md:flex-row items-start md:items-center justify-between mb-4 gap-2">
+                    <h3 class="text-xl font-bold text-gray-800 flex items-center">
+                        <span class="bg-red-100 text-red-800 px-2.5 py-1 rounded-md text-sm font-mono mr-4">DELETE</span>
+                        Delete File
+                    </h3>
+                        <span class="text-sm text-gray-500 font-mono bg-gray-100 px-2 py-1 rounded-md">/api/files/:key</span>
+                </div>
+                <p class="text-gray-600 mb-6">Delete a file from R2 storage by its key.</p>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div>
+                        <h4 class="font-semibold text-gray-700 mb-2">Request</h4>
+                        <pre><code class="language-bash">curl -X DELETE \
+ -H "X-API-Key: your-api-key" \
+ http://localhost:3000/api/files/1640995200000-image.jpg</code></pre>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold text-gray-700 mb-2">Response</h4>
+                        <pre><code class="language-json">{
   "success": true,
   "message": "File deleted successfully",
   "data": {
     "key": "1640995200000-image.jpg"
   }
 }</code></pre>
-          </div>
-        </div>
-      </div>
-
-      <!-- API Info -->
-      <div class="endpoint-card bg-white rounded-lg shadow-sm p-6">
-        <div class="flex items-center justify-between mb-4">
-          <h3 class="text-xl font-bold text-gray-800 flex items-center">
-            <span class="bg-purple-100 text-purple-700 px-2 py-1 rounded text-sm font-mono mr-3">GET</span>
-            API Information
-          </h3>
-          <span class="text-sm text-gray-500">/api/info</span>
-        </div>
-        
-        <p class="text-gray-600 mb-4">Get API information and available endpoints.</p>
-        
-        <div class="grid md:grid-cols-2 gap-6">
-          <div>
-            <h4 class="font-semibold text-gray-700 mb-2">Request</h4>
-            <pre class="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto text-sm"><code class="language-bash">curl -H "X-API-Key: your-api-key" \
-  http://localhost:3000/api/info</code></pre>
-          </div>
-          
-          <div>
-            <h4 class="font-semibold text-gray-700 mb-2">Response</h4>
-            <pre class="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto text-sm"><code class="language-json">{
+                    </div>
+                </div>
+            </div>
+            
+            <div class="endpoint-card bg-white rounded-xl shadow-md p-6">
+                <div class="flex flex-col md:flex-row items-start md:items-center justify-between mb-4 gap-2">
+                    <h3 class="text-xl font-bold text-gray-800 flex items-center">
+                        <span class="bg-purple-100 text-purple-800 px-2.5 py-1 rounded-md text-sm font-mono mr-4">GET</span>
+                        API Information
+                    </h3>
+                    <span class="text-sm text-gray-500 font-mono bg-gray-100 px-2 py-1 rounded-md">/api/info</span>
+                </div>
+                <p class="text-gray-600 mb-6">Get API information and available endpoints.</p>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div>
+                        <h4 class="font-semibold text-gray-700 mb-2">Request</h4>
+                        <pre><code class="language-bash">curl -H "X-API-Key: your-api-key" \
+ http://localhost:3000/api/info</code></pre>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold text-gray-700 mb-2">Response</h4>
+                        <pre><code class="language-json">{
   "success": true,
   "data": {
     "name": "R2 File Manager API",
     "version": "1.0.0",
-    "endpoints": {
-      "POST /api/upload": "Upload a single file",
-      "POST /api/upload-multiple": "Upload multiple files (max 10)",
-      "GET /api/files": "List all files with pagination",
-      "DELETE /api/files/:key": "Delete a file by key",
-      "GET /api/info": "API information"
-    },
-    "authentication": "API Key required in X-API-Key header or Authorization: Bearer <key>",
+    "endpoints": {...},
+    "authentication": "API Key required",
     "maxFileSize": "50MB per file"
   }
 }</code></pre>
-          </div>
-        </div>
-      </div>
-    </div>
+                    </div>
+                </div>
+            </div>
 
-    <!-- Error Responses -->
-    <div class="bg-white rounded-lg shadow-sm p-6 mt-8">
-      <h2 class="text-xl font-bold text-gray-800 mb-4">Error Responses</h2>
-      <div class="space-y-4">
-        <div>
-          <h3 class="font-semibold text-gray-700 mb-2">401 Unauthorized</h3>
-          <pre class="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto text-sm"><code class="language-json">{
+        </div>
+
+        <!-- Error Responses -->
+        <div class="bg-white rounded-xl shadow-md p-6 mt-8">
+            <h2 class="text-xl font-bold text-gray-800 mb-4">Error Responses</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div>
+                    <h3 class="font-semibold text-gray-700 mb-2">401 Unauthorized</h3>
+                    <pre><code class="language-json">{
   "error": "API key required",
-  "message": "Provide API key in X-API-Key header or Authorization: Bearer <key>"
+  "message": "Provide API key in..."
 }</code></pre>
-        </div>
-        
-        <div>
-          <h3 class="font-semibold text-gray-700 mb-2">400 Bad Request</h3>
-          <pre class="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto text-sm"><code class="language-json">{
+                </div>
+                <div>
+                    <h3 class="font-semibold text-gray-700 mb-2">400 Bad Request</h3>
+                    <pre><code class="language-json">{
   "error": "No file uploaded",
-  "message": "Please provide a file in the \"file\" field"
+  "message": "Please provide a file..."
 }</code></pre>
-        </div>
-        
-        <div>
-          <h3 class="font-semibold text-gray-700 mb-2">500 Internal Server Error</h3>
-          <pre class="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto text-sm"><code class="language-json">{
+                </div>
+                <div>
+                    <h3 class="font-semibold text-gray-700 mb-2">500 Internal Server Error</h3>
+                    <pre><code class="language-json">{
   "success": false,
   "error": "Upload failed",
   "message": "Detailed error message"
 }</code></pre>
+                </div>
+            </div>
         </div>
-      </div>
     </div>
-  </div>
 
-  <script>
-    // ... (script content omitted for brevity, see previous cell for full code) ...
-  </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Configuration
+            const DEFAULT_API_KEY = 'your-api-key-change-this';
+
+            // DOM Elements
+            const generateApiKeyBtn = document.getElementById('generateApiKeyBtn');
+            const apiKeySection = document.getElementById('apiKeySection');
+            const apiKeyDisplay = document.getElementById('apiKeyDisplay');
+            const toggleApiKeyBtn = document.getElementById('toggleApiKeyBtn');
+            const copyApiKeyBtn = document.getElementById('copyApiKeyBtn');
+            const copyBaseUrlBtn = document.getElementById('copyBaseUrlBtn');
+            const baseUrlElement = document.getElementById('baseUrl');
+
+            let isApiKeySectionVisible = false;
+
+            // --- Functions ---
+
+            const showToast = (message, type = 'info') => {
+                const toastContainer = document.getElementById('toast-container');
+                if (!toastContainer) return;
+
+                const toast = document.createElement('div');
+                const icons = {
+                    success: 'fa-check-circle',
+                    error: 'fa-times-circle',
+                    warning: 'fa-exclamation-triangle',
+                    info: 'fa-info-circle'
+                };
+                const colors = {
+                    success: 'bg-green-500',
+                    error: 'bg-red-500',
+                    warning: 'bg-yellow-500',
+                    info: 'bg-blue-500'
+                };
+
+                toast.className = `toast px-4 py-3 rounded-lg shadow-lg text-white text-sm font-medium max-w-sm ${colors[type]}`;
+                toast.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <i class="fas ${icons[type]} text-lg"></i>
+                        <span>${message}</span>
+                    </div>
+                `;
+
+                toastContainer.appendChild(toast);
+                setTimeout(() => {
+                    toast.remove();
+                }, 4000);
+            };
+            
+            const copyToClipboard = (text, successMessage) => {
+                // Use the Clipboard API for modern browsers
+                if (navigator.clipboard && window.isSecureContext) {
+                    navigator.clipboard.writeText(text).then(() => {
+                        showToast(successMessage, 'success');
+                    }).catch(err => {
+                        console.error('Copy failed:', err);
+                        showToast('Failed to copy to clipboard', 'error');
+                    });
+                } else {
+                    // Fallback for older browsers
+                    const textArea = document.createElement("textarea");
+                    textArea.value = text;
+                    textArea.style.position = "fixed"; // Avoid scrolling to bottom
+                    textArea.style.left = "-9999px";
+                    document.body.appendChild(textArea);
+                    textArea.focus();
+                    textArea.select();
+                    try {
+                        document.execCommand('copy');
+                        showToast(successMessage, 'success');
+                    } catch (err) {
+                        console.error('Fallback copy failed:', err);
+                        showToast('Failed to copy to clipboard', 'error');
+                    }
+                    document.body.removeChild(textArea);
+                }
+            };
+            
+
+            const toggleApiKeySection = () => {
+                isApiKeySectionVisible = !isApiKeySectionVisible;
+                if (isApiKeySectionVisible) {
+                    apiKeySection.classList.remove('hidden');
+                    apiKeyDisplay.value = DEFAULT_API_KEY;
+                    generateApiKeyBtn.querySelector('span').textContent = 'Hide API Key';
+                    showToast('API Key displayed. Keep it secure!', 'warning');
+                } else {
+                    apiKeySection.classList.add('hidden');
+                    generateApiKeyBtn.querySelector('span').textContent = 'Show API Key';
+                }
+            };
+
+            const toggleApiKeyVisibility = () => {
+                const isVisible = apiKeyDisplay.type === 'text';
+                apiKeyDisplay.type = isVisible ? 'password' : 'text';
+                const icon = toggleApiKeyBtn.querySelector('i');
+                icon.className = isVisible ? 'fas fa-eye' : 'fas fa-eye-slash';
+            };
+
+
+            // --- Event Listeners ---
+
+            if (generateApiKeyBtn) {
+                generateApiKeyBtn.addEventListener('click', toggleApiKeySection);
+            }
+
+            if (toggleApiKeyBtn) {
+                toggleApiKeyBtn.addEventListener('click', toggleApiKeyVisibility);
+            }
+
+            if (copyApiKeyBtn) {
+                copyApiKeyBtn.addEventListener('click', () => {
+                   copyToClipboard(apiKeyDisplay.value, 'API Key copied to clipboard!');
+                });
+            }
+
+            if (copyBaseUrlBtn) {
+                copyBaseUrlBtn.addEventListener('click', () => {
+                    copyToClipboard(baseUrlElement.textContent.replace('Base URL: ', ''), 'Base URL copied to clipboard!');
+                });
+            }
+
+            // --- Initial Setup ---
+
+            if (baseUrlElement) {
+                baseUrlElement.textContent = `${window.location.origin}/api`;
+            }
+        });
+    </script>
 </body>
 </html>

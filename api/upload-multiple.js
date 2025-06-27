@@ -1,13 +1,13 @@
 const formidable = require('formidable');
 const { 
-  authenticateApiKey, 
+  authenticateHybrid, 
   handleCors, 
   errorResponse, 
   successResponse 
 } = require('./utils');
 const { putObject } = require('./r2-client');
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   if (handleCors(req, res)) return;
 
   if (req.method !== 'POST') {
@@ -15,12 +15,19 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Authenticate API key
-    authenticateApiKey(req);
+    // Authenticate using hybrid authentication (supports both API key and JWT session)
+    const { user, newAccessToken } = authenticateHybrid(req);
+    
+    // Set new access token if JWT was refreshed
+    if (newAccessToken) {
+      const { setCookie } = require('./utils');
+      const accessCookie = setCookie('accessToken', newAccessToken, { maxAge: 15 * 60 });
+      res.setHeader('Set-Cookie', accessCookie);
+    }
     
     // Parse form data
-    const form = formidable({
-      maxFileSize: 50 * 1024 * 1024, // 50MB
+    const form = new formidable.IncomingForm({
+      maxFileSize: 4 * 1024 * 1024, // 4MB for Vercel Hobby compatibility  
       maxFiles: 10
     });
     
@@ -95,7 +102,7 @@ export default async function handler(req, res) {
     
   } catch (error) {
     console.error('API Multiple upload error:', error);
-    if (error.message.includes('API key')) {
+    if (error.message.includes('API key') || error.message.includes('token') || error.message.includes('authenticate')) {
       return errorResponse(res, 401, error.message);
     }
     return errorResponse(res, 500, 'Upload failed', error.message);

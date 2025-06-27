@@ -4,7 +4,7 @@ const {
   successResponse 
 } = require('./utils');
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   if (handleCors(req, res)) return;
 
   if (req.method !== 'GET') {
@@ -26,7 +26,7 @@ export default async function handler(req, res) {
         'GET /api/info': 'API information'
       },
       authentication: 'API Key required in X-API-Key header or Authorization: Bearer <key>',
-      maxFileSize: '50MB per file'
+      maxFileSize: '4MB per file (Vercel Hobby limit)'
     });
   } catch (error) {
     return res.status(401).json({ error: error.message });

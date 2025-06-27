@@ -18,7 +18,12 @@ npm install
 ```
 
 ### 2. Variabel Lingkungan
-Buat file `.env` di root proyek dengan variabel berikut:
+Salin file `.env.example` ke `.env` dan sesuaikan dengan konfigurasi Anda:
+```bash
+cp .env.example .env
+```
+
+Edit file `.env` dengan konfigurasi R2 Anda:
 ```env
 # Server Configuration
 PORT=3000
@@ -36,14 +41,52 @@ ADMIN_USERNAME=admin
 ADMIN_PASSWORD=admin123
 ACCESS_TOKEN_SECRET=your-super-secret-access-token-key-change-this-in-production
 REFRESH_TOKEN_SECRET=your-super-secret-refresh-token-key-change-this-in-production
+
+# API Configuration
+API_KEY=your-api-key-for-external-access-change-this
 ```
 
-### 3. Jalankan server
+### 3. Jalankan aplikasi
+
+#### Untuk Development Lokal (tanpa Vercel CLI):
 ```bash
+# Development dengan auto-reload
+npm run dev
+
+# Atau jalankan biasa
 npm start
 ```
 
-Aplikasi akan berjalan di port 3000 secara default.
+#### Untuk Testing dengan Vercel (jika sudah install Vercel CLI):
+```bash
+# Development dengan Vercel
+npm run vercel:dev
+
+# Deploy ke production
+npm run vercel:deploy
+```
+
+Aplikasi akan berjalan di:
+- **Local development**: `http://localhost:3000`
+- **Vercel development**: `http://localhost:3000` (atau port yang ditampilkan Vercel)
+
+## Deployment ke Vercel
+
+### Persiapan
+1. Pastikan semua file sudah menggunakan `module.exports` (bukan `export default`)
+2. Set environment variables di Vercel dashboard
+3. Pastikan `vercel.json` sudah dikonfigurasi dengan benar
+
+### Deploy
+```bash
+# Install Vercel CLI (opsional, bisa deploy via Git)
+npm i -g vercel
+
+# Deploy
+vercel --prod
+```
+
+Atau push ke Git repository yang sudah terhubung dengan Vercel untuk auto-deployment.
 
 ## Authentication
 
@@ -69,14 +112,14 @@ Aplikasi akan berjalan di port 3000 secara default.
 ```
 POST /auth/login     - Login dengan username/password
 POST /auth/logout    - Logout dan clear cookies
-POST /auth/refresh   - Refresh access token
+POST /auth/refresh   - Refresh access token (dengan refresh token di cookie)
 GET  /auth/status    - Check authentication status
 ```
 
-### Protected File Routes (Requires Authentication)
+### Internal (Frontend) File Routes (Requires JWT Auth via Cookie)
 ```
-POST   /r2/upload              - Upload file
-GET    /r2/files               - List files with pagination
+POST   /r2/upload              - Upload file (via web UI)
+GET    /r2/files               - List files with pagination (web UI)
 GET    /r2/download/:key       - Download file
 GET    /r2/presigned/:key      - Get temporary URL
 DELETE /r2/files/:key          - Delete file
@@ -84,17 +127,17 @@ DELETE /r2/files/:key          - Delete file
 
 ### Public API Routes (Requires API Key)
 ```
-POST   /api/upload             - Upload single file
-POST   /api/upload-multiple    - Upload multiple files (max 10)
-GET    /api/files              - List files with pagination
-DELETE /api/files/:key         - Delete file
+POST   /api/upload             - Upload single file (API key)
+POST   /api/upload-multiple    - Upload multiple files (max 10, API key)
+GET    /api/files              - List files with pagination (API key)
+DELETE /api/files/:key         - Delete file (API key)
 GET    /api/info               - API information
 ```
 
 ## API Integration
 
 ### API Authentication
-API menggunakan API Key untuk autentikasi. Sertakan API key dalam header:
+API eksternal menggunakan API Key untuk autentikasi. Sertakan API key dalam header:
 
 ```bash
 # Option 1: X-API-Key header
@@ -126,11 +169,12 @@ curl -X POST \
 
 ### API Documentation
 Akses dokumentasi API lengkap di: `http://localhost:3000/api-docs.html` (setelah login)
+
 ## Frontend Features
 
 Frontend dapat diakses di `http://localhost:3000` dan menyediakan:
 
-### Dashboard File Manager
+### Dashboard File Manager (Internal, JWT Auth)
 - **Responsive Design**: Bekerja optimal di desktop dan mobile
 - **Drag & Drop Upload**: Upload multiple files sekaligus
 - **File Filtering**: Filter berdasarkan tipe file (gambar, dokumen, audio, video, archive)
@@ -155,15 +199,21 @@ file-service/
 ├── .env.example              # Template konfigurasi
 ├── package.json              # Dependencies
 ├── README.md                 # Dokumentasi
-├── src/
-│   ├── app.js                # Main Express server
-│   ├── auth-routes.js        # Authentication endpoints
+├── api/                      # Vercel serverless functions
+│   ├── utils.js              # Shared utilities
+│   ├── r2-client.js          # R2 client for serverless
 │   ├── auth-middleware.js    # JWT middleware
-│   ├── r2-client.js          # R2 client configuration
-│   └── r2-routes.js          # Protected file operations
-└── frontend/
-    ├── index.html            # Main file manager UI
-    └── login.html            # Login page
+│   ├── auth-routes.js        # Authentication endpoints
+│   ├── r2.js                 # Internal file operations (JWT)
+│   ├── files.js              # API key file operations
+│   ├── upload.js             # API key upload
+│   ├── upload-multiple.js    # API key upload multiple
+│   └── info.js               # API info
+├── public/
+│   ├── index.html            # Main UI
+│   ├── login.html            # Login page
+│   └── api-docs.html         # API documentation
+└── vercel.json               # Vercel configuration
 ```
 
 ## Security Notes
@@ -217,23 +267,14 @@ file-service/
 ├── api/                      # Vercel serverless functions
 │   ├── utils.js              # Shared utilities
 │   ├── r2-client.js          # R2 client for serverless
-│   ├── auth/                 # Authentication endpoints
-│   │   ├── login.js          # POST /api/auth/login
-│   │   ├── logout.js         # POST /api/auth/logout
-│   │   ├── refresh.js        # POST /api/auth/refresh
-│   │   └── status.js         # GET /api/auth/status
-│   ├── r2/                   # UI file operations (cookie auth)
-│   │   ├── upload.js         # POST /api/r2/upload
-│   │   ├── files.js          # GET /api/r2/files
-│   │   ├── files/[key].js    # DELETE /api/r2/files/:key
-│   │   ├── download/[key].js # GET /api/r2/download/:key
-│   │   └── presigned/[key].js # GET /api/r2/presigned/:key
-│   ├── upload.js             # POST /api/upload (API key auth)
-│   ├── upload-multiple.js    # POST /api/upload-multiple
-│   ├── files.js              # GET /api/files (API key auth)
-│   ├── files/[key].js        # DELETE /api/files/:key
-│   └── info.js               # GET /api/info
-├── frontend/                 # Static files
+│   ├── auth-middleware.js    # JWT middleware
+│   ├── auth-routes.js        # Authentication endpoints
+│   ├── r2.js                 # Internal file operations (JWT)
+│   ├── files.js              # API key file operations
+│   ├── upload.js             # API key upload
+│   ├── upload-multiple.js    # API key upload multiple
+│   └── info.js               # API info
+├── public/                   # Static files
 │   ├── index.html            # Main UI
 │   ├── login.html            # Login page
 │   └── api-docs.html         # API documentation
