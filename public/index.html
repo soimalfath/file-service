@@ -485,15 +485,27 @@
 
             function downloadFile(fileName, url) {
                 try {
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = fileName;
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    showToast(`Mengunduh ${fileName}...`, 'info');
+                    // Download harus pakai fetch agar cookie (JWT) tetap dikirim
+                    fetch(url, { credentials: 'include' })
+                        .then(resp => {
+                            if (!resp.ok) throw new Error('Gagal mengunduh file');
+                            return resp.blob();
+                        })
+                        .then(blob => {
+                            const a = document.createElement('a');
+                            const objectUrl = URL.createObjectURL(blob);
+                            a.href = objectUrl;
+                            a.download = fileName;
+                            document.body.appendChild(a);
+                            a.click();
+                            document.body.removeChild(a);
+                            URL.revokeObjectURL(objectUrl);
+                            showToast(`Mengunduh ${fileName}...`, 'info');
+                        })
+                        .catch(error => {
+                            showToast('Gagal mengunduh file.', 'error');
+                        });
                 } catch (error) {
-                    console.error('Download error:', error);
                     showToast('Gagal mengunduh file.', 'error');
                 }
             }
