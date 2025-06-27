@@ -31,7 +31,7 @@ function generateTokens(username) {
 
 // Serve login page
 router.get('/login', (req, res) => {
-  res.sendFile(path.join(__dirname, '../frontend/login.html'));
+  res.sendFile(path.join(__dirname, '../public/login.html'));
 });
 
 // Login endpoint

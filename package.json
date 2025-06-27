@@ -4,7 +4,7 @@
   "description": "R2 File Manager with Vercel deployment support",
   "main": "api/index.js",
   "scripts": {
-    "start": "node src/app.js",
+    "start": "vercel dev",
     "dev": "vercel dev",
     "build": "echo 'No build step required'"
   },

@@ -44,8 +44,8 @@ router.post('/upload', authenticateApiKey, upload.single('file'), async (req, re
       return res.status(400).json({ error: 'Empty file uploaded' });
     }
     
-    // Check file size (optional limit, e.g., 50MB)
-    const maxSize = 50 * 1024 * 1024; // 50MB
+    // Check file size (limit 25MB for Hobby Plan)
+    const maxSize = 25 * 1024 * 1024; // 25MB
     if (req.file.size > maxSize) {
       return res.status(400).json({ 
         error: 'File too large',
@@ -59,7 +59,7 @@ router.post('/upload', authenticateApiKey, upload.single('file'), async (req, re
     const filename = `${timestamp}-${originalName}`;
     
     // Upload to R2
-    const uploadResult = await R2.putObject({
+    await R2.putObject({
       Bucket: process.env.R2_BUCKET_NAME,
       Key: filename,
       Body: req.file.buffer,
@@ -96,7 +96,7 @@ router.post('/upload', authenticateApiKey, upload.single('file'), async (req, re
 });
 
 // POST /api/upload-multiple - Upload multiple files to R2 (API access)
-router.post('/upload-multiple', authenticateApiKey, upload.array('files', 10), async (req, res) => {
+router.post('/upload-multiple', authenticateApiKey, upload.array('files', 5), async (req, res) => {
   try {
     if (!req.files || req.files.length === 0) {
       return res.status(400).json({ 
@@ -115,12 +115,16 @@ router.post('/upload-multiple', authenticateApiKey, upload.array('files', 10), a
           errors.push({ file: file.originalname, error: 'Empty file' });
           continue;
         }
-        
+        // Check file size (limit 25MB)
+        const maxSize = 25 * 1024 * 1024;
+        if (file.size > maxSize) {
+          errors.push({ file: file.originalname, error: 'File too large' });
+          continue;
+        }
         // Generate filename with timestamp
         const timestamp = Date.now();
         const randomSuffix = Math.random().toString(36).substring(2, 8);
         const filename = `${timestamp}-${randomSuffix}-${file.originalname}`;
-        
         // Upload to R2
         await R2.putObject({
           Bucket: process.env.R2_BUCKET_NAME,
@@ -128,12 +132,10 @@ router.post('/upload-multiple', authenticateApiKey, upload.array('files', 10), a
           Body: file.buffer,
           ContentType: file.mimetype,
         });
-        
         // Build file URLs
         const baseUrl = process.env.R2_PUBLIC_URL || '';
         const publicUrl = baseUrl ? `${baseUrl.replace(/\/$/, '')}/${filename}` : null;
         const downloadUrl = `/r2/download/${filename}`;
-        
         uploadResults.push({
           filename: filename,
           originalName: file.originalname,
@@ -271,13 +273,13 @@ router.get('/info', authenticateApiKey, (req, res) => {
       version: '1.0.0',
       endpoints: {
         'POST /api/upload': 'Upload a single file',
-        'POST /api/upload-multiple': 'Upload multiple files (max 10)',
+        'POST /api/upload-multiple': 'Upload multiple files (max 5)',
         'GET /api/files': 'List all files with pagination',
         'DELETE /api/files/:key': 'Delete a file by key',
         'GET /api/info': 'API information'
       },
       authentication: 'API Key required in X-API-Key header or Authorization: Bearer <key>',
-      maxFileSize: '50MB per file'
+      maxFileSize: '25MB per file'
     }
   });
 });
