@@ -377,7 +377,8 @@
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             // Configuration
-            const DEFAULT_API_KEY = 'your-api-key-change-this';
+            // Ambil API_KEY dari window.ENV jika ada, fallback ke placeholder
+            const DEFAULT_API_KEY = window.ENV?.API_KEY || 'your-api-key-change-this';
 
             // DOM Elements
             const generateApiKeyBtn = document.getElementById('generateApiKeyBtn');
