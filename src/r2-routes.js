@@ -1,6 +1,5 @@
 const express = require('express');
 const multer = require('multer');
-const crypto = require('crypto');
 const { R2 } = require('./r2-client');
 const router = express.Router();
 
@@ -20,29 +19,28 @@ router.post('/upload', upload.single('file'), async (req, res) => {
     }
     
     // Generate a unique filename
-		const uniqueName = `${crypto.randomUUID()}-${req.file.originalname}`;
-		const prefix = process.env.R2_BUCKET_NAME
+		const name = req.file.originalname;
     
     // Upload to R2
     const uploadResult = await R2.putObject({
       Bucket: process.env.R2_BUCKET_NAME,
-      Key: uniqueName,
+      Key: name,
       Body: req.file.buffer,
       ContentType: req.file.mimetype,
     });
     
     // Build file URL (using R2 public endpoint if available)
     const baseUrl = process.env.R2_PUBLIC_URL || '';
-    const fileUrl = baseUrl ? `${baseUrl.replace(/\/$/, '')}/${prefix}/${uniqueName}` : null;
+    const fileUrl = baseUrl ? `${baseUrl.replace(/\/$/, '')}/${name}` : null;
     
     res.json({
       message: 'File uploaded successfully',
-      filename: uniqueName,
-      key: uniqueName,
+      filename: name,
+      key: name,
       size: req.file.size,
       contentType: req.file.mimetype,
       url: fileUrl,
-      downloadUrl: `/r2/download/${uniqueName}`
+      downloadUrl: `/r2/download/${name}`
     });
   } catch (err) {
     console.error('Upload error:', err);
@@ -56,28 +54,32 @@ router.post('/upload', upload.single('file'), async (req, res) => {
 // GET /r2/files - List all files in R2
 router.get('/files', async (req, res) => {
   try {
-    const MaxKeys = parseInt(req.query.limit, 10) || 100;
-    const ContinuationToken = req.query.token || undefined;
-    const Prefix = req.query.prefix || '';
     const Bucket = process.env.R2_BUCKET_NAME;
-    
+    if (!Bucket) {
+        console.error("R2_BUCKET_NAME environment variable is not set.");
+        return res.status(500).json({ error: 'Server configuration error: Bucket name is missing.' });
+    }
     const result = await R2.listObjects({ 
-      Bucket, 
-      ContinuationToken, 
-      MaxKeys,
-      Prefix
+      Bucket,
+			ContinuationToken: req.query.token || undefined,
+			Prefix: req.query.prefix || '', // Uncomment if you want to filter by prefix
+      MaxKeys: parseInt(req.query.limit, 10) || 100, // Anda bisa atur limit per halaman
     });
-    
+
+
+
     const baseUrl = process.env.R2_PUBLIC_URL || '';
     
     const files = (result.Contents || []).map(obj => ({
       key: obj.Key,
       size: obj.Size,
       lastModified: obj.LastModified,
+      // URL publik langsung menunjuk ke key
       url: baseUrl ? `${baseUrl.replace(/\/$/, '')}/${obj.Key}` : null,
-      downloadUrl: `/r2/download/${obj.Key}`
+      downloadUrl: `/r2/download/${encodeURIComponent(obj.Key)}`
     }));
     
+    // Mengirim kembali token ke klien agar bisa meminta halaman selanjutnya
     res.json({
       files,
       nextToken: result.NextContinuationToken || null,
@@ -85,7 +87,7 @@ router.get('/files', async (req, res) => {
     });
   } catch (err) {
     console.error('List files error:', err);
-    res.status(500).json({ error: 'Failed to list files' });
+    res.status(500).json({ error: 'Failed to list files', details: err.message });
   }
 });
 
