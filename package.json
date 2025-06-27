@@ -2,7 +2,7 @@
   "name": "file-service",
   "version": "1.0.0",
   "description": "R2 File Manager with Vercel deployment support",
-  "main": "api/index.js",
+  "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
