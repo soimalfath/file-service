@@ -184,8 +184,76 @@ ACCESS_TOKEN_SECRET=very-long-random-string-for-access-tokens
 REFRESH_TOKEN_SECRET=different-very-long-random-string-for-refresh-tokens
 ```
 
+## Deployment ke Vercel
+
+### Langkah Deployment
+
+1. **Push ke GitHub repository**
+2. **Connect ke Vercel**:
+   - Login ke [vercel.com](https://vercel.com)
+   - Import project dari GitHub
+   - Pilih repository ini
+
+3. **Set Environment Variables di Vercel**:
+   ```
+   R2_ENDPOINT=https://your-account-id.r2.cloudflarestorage.com
+   R2_ACCESS_KEY_ID=your_access_key_id
+   R2_SECRET_ACCESS_KEY=your_secret_access_key
+   R2_BUCKET_NAME=your_bucket_name
+   R2_PUBLIC_URL=https://your-public-bucket-url.r2.dev
+   
+   ADMIN_USERNAME=admin
+   ADMIN_PASSWORD=your_secure_password
+   ACCESS_TOKEN_SECRET=your-super-secret-access-token-key
+   REFRESH_TOKEN_SECRET=your-super-secret-refresh-token-key
+   API_KEY=your-api-key-for-external-access
+   ```
+
+4. **Deploy**: Vercel akan otomatis deploy project
+
+### Struktur Serverless
+```
+file-service/
+├── api/                      # Vercel serverless functions
+│   ├── utils.js              # Shared utilities
+│   ├── r2-client.js          # R2 client for serverless
+│   ├── auth/                 # Authentication endpoints
+│   │   ├── login.js          # POST /api/auth/login
+│   │   ├── logout.js         # POST /api/auth/logout
+│   │   ├── refresh.js        # POST /api/auth/refresh
+│   │   └── status.js         # GET /api/auth/status
+│   ├── r2/                   # UI file operations (cookie auth)
+│   │   ├── upload.js         # POST /api/r2/upload
+│   │   ├── files.js          # GET /api/r2/files
+│   │   ├── files/[key].js    # DELETE /api/r2/files/:key
+│   │   ├── download/[key].js # GET /api/r2/download/:key
+│   │   └── presigned/[key].js # GET /api/r2/presigned/:key
+│   ├── upload.js             # POST /api/upload (API key auth)
+│   ├── upload-multiple.js    # POST /api/upload-multiple
+│   ├── files.js              # GET /api/files (API key auth)
+│   ├── files/[key].js        # DELETE /api/files/:key
+│   └── info.js               # GET /api/info
+├── frontend/                 # Static files
+│   ├── index.html            # Main UI
+│   ├── login.html            # Login page
+│   └── api-docs.html         # API documentation
+└── vercel.json               # Vercel configuration
+```
+
+### Testing Local Development
+```bash
+# Install Vercel CLI
+npm i -g vercel
+
+# Run local development server
+vercel dev
+
+# Access at http://localhost:3000
+```
+
 ## Teknologi yang Digunakan
-- **Backend**: Express.js, JWT, bcryptjs
+- **Backend**: Vercel Serverless Functions, JWT, bcryptjs
 - **Frontend**: Vanilla JavaScript, Tailwind CSS, Font Awesome
 - **Storage**: Cloudflare R2 (S3-compatible)
 - **Security**: HTTP-only cookies, CORS, JWT refresh mechanism
+- **Deployment**: Vercel (Full-stack serverless)
