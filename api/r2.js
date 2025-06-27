@@ -38,7 +38,12 @@ module.exports = async function handler(req, res) {
       await putObject({ Bucket: process.env.R2_BUCKET_NAME, Key: filename, Body: fileBuffer, ContentType: file.mimetype || 'application/octet-stream' });
       const baseUrl = process.env.R2_PUBLIC_URL || '';
       const publicUrl = baseUrl ? `${baseUrl.replace(/\/$/, '')}/${filename}` : null;
-      return require('./utils').successResponse(res, { filename, key: filename, size: file.size, contentType: file.mimetype || 'application/octet-stream', url: publicUrl, downloadUrl: `/r2/download/${filename}` }, 'File uploaded successfully');
+      // Samakan response dengan /api/files/upload: data: { file: {...} }
+      return require('./utils').successResponse(
+        res,
+        { file: { filename, key: filename, size: file.size, contentType: file.mimetype || 'application/octet-stream', url: publicUrl, downloadUrl: `/r2/download/${filename}` } },
+        'File uploaded successfully'
+      );
     } catch (error) {
       console.error('R2 Upload error:', error);
       if (error.message.includes('token') || error.message.includes('authenticate')) return errorResponse(res, 401, error.message);
