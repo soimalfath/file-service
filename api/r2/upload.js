@@ -1,4 +1,4 @@
-const formidable = require('formidable');
+const Busboy = require('busboy');
 const { 
   authenticateToken, 
   handleCors, 
@@ -27,39 +27,81 @@ export default async function handler(req, res) {
       res.setHeader('Set-Cookie', accessCookie);
     }
     
-    // Parse form data
-    const form = formidable({
-      maxFileSize: 50 * 1024 * 1024, // 50MB
-      maxFiles: 1
+    // Parse multipart form with busboy
+    const busboy = Busboy({ 
+      headers: req.headers,
+      limits: {
+        fileSize: 25 * 1024 * 1024, // 25MB for Hobby Plan
+        files: 1
+      }
     });
     
-    const [fields, files] = await form.parse(req);
+    let fileData = null;
+    let uploadError = null;
     
-    if (!files.file || files.file.length === 0) {
+    const parsePromise = new Promise((resolve, reject) => {
+      busboy.on('file', (fieldname, file, filename, encoding, mimetype) => {
+        if (fieldname !== 'file') {
+          file.resume();
+          return;
+        }
+        
+        const chunks = [];
+        
+        file.on('data', (chunk) => {
+          chunks.push(chunk);
+        });
+        
+        file.on('end', () => {
+          const buffer = Buffer.concat(chunks);
+          
+          if (buffer.length === 0) {
+            uploadError = 'Empty file uploaded';
+            return;
+          }
+          
+          fileData = {
+            filename: filename,
+            buffer: buffer,
+            mimetype: mimetype,
+            size: buffer.length
+          };
+        });
+        
+        file.on('error', (err) => {
+          uploadError = err.message;
+        });
+      });
+      
+      busboy.on('finish', () => {
+        resolve();
+      });
+      
+      busboy.on('error', (err) => {
+        reject(err);
+      });
+    });
+    
+    req.pipe(busboy);
+    await parsePromise;
+    
+    if (uploadError) {
+      return errorResponse(res, 400, uploadError);
+    }
+    
+    if (!fileData) {
       return errorResponse(res, 400, 'No file uploaded');
     }
     
-    const file = Array.isArray(files.file) ? files.file[0] : files.file;
-    
-    // Validate file
-    if (!file.size || file.size === 0) {
-      return errorResponse(res, 400, 'Empty file uploaded');
-    }
-    
-    // Generate filename with timestamp
-    const originalName = file.originalFilename || file.name || 'unknown';
-    const filename = originalName; // Keep original name for UI uploads
-    
-    // Read file buffer
-    const fs = require('fs');
-    const fileBuffer = fs.readFileSync(file.filepath);
+    // Keep original name for UI uploads
+    const filename = fileData.filename || 'unknown';
     
     // Upload to R2
     await putObject({
       Bucket: process.env.R2_BUCKET_NAME,
       Key: filename,
-      Body: fileBuffer,
-      ContentType: file.mimetype || 'application/octet-stream',
+      Body: fileData.buffer,
+      ContentType: fileData.mimetype || 'application/octet-stream',
     });
     
     // Build file URLs
@@ -70,8 +112,8 @@ export default async function handler(req, res) {
       message: 'File uploaded successfully',
       filename: filename,
       key: filename,
-      size: file.size,
-      contentType: file.mimetype || 'application/octet-stream',
+      size: fileData.size,
+      contentType: fileData.mimetype || 'application/octet-stream',
       url: publicUrl,
       downloadUrl: `/r2/download/${filename}`
     });

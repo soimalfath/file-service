@@ -1,4 +1,4 @@
-const formidable = require('formidable');
+const Busboy = require('busboy');
 const { 
   authenticateApiKey, 
   handleCors, 
@@ -18,46 +18,84 @@ export default async function handler(req, res) {
     // Authenticate API key
     authenticateApiKey(req);
     
-    // Parse form data
-    const form = formidable({
-      maxFileSize: 50 * 1024 * 1024, // 50MB
-      maxFiles: 10
+    // Parse multipart form with busboy (max 5 files for Hobby Plan)
+    const busboy = Busboy({ 
+      headers: req.headers,
+      limits: {
+        fileSize: 25 * 1024 * 1024, // 25MB per file
+        files: 5 // Max 5 files for Hobby Plan timeout
+      }
     });
     
-    const [fields, files] = await form.parse(req);
-    
-    if (!files.files || files.files.length === 0) {
-      return errorResponse(res, 400, 'No files uploaded', 'Please provide files in the "files" field');
-    }
-    
-    const fileArray = Array.isArray(files.files) ? files.files : [files.files];
+    const files = [];
     const uploadResults = [];
     const errors = [];
     
-    for (const file of fileArray) {
-      try {
-        // Validate file
-        if (!file.size || file.size === 0) {
-          errors.push({ file: file.originalFilename || file.name, error: 'Empty file' });
-          continue;
+    const parsePromise = new Promise((resolve, reject) => {
+      busboy.on('file', (fieldname, file, filename, encoding, mimetype) => {
+        if (fieldname !== 'files') {
+          file.resume();
+          return;
         }
         
+        const chunks = [];
+        
+        file.on('data', (chunk) => {
+          chunks.push(chunk);
+        });
+        
+        file.on('end', () => {
+          const buffer = Buffer.concat(chunks);
+          
+          if (buffer.length > 0) {
+            files.push({
+              filename: filename,
+              buffer: buffer,
+              mimetype: mimetype,
+              size: buffer.length
+            });
+          }
+        });
+        
+        file.on('error', (err) => {
+          errors.push({ 
+            file: filename, 
+            error: err.message 
+          });
+        });
+      });
+      
+      busboy.on('finish', () => {
+        resolve();
+      });
+      
+      busboy.on('error', (err) => {
+        reject(err);
+      });
+    });
+    
+    req.pipe(busboy);
+    await parsePromise;
+    
+    if (files.length === 0) {
+      return errorResponse(res, 400, 'No files uploaded', 'Please provide files in the "files" field');
+    }
+    
+    // Process files sequentially to avoid timeout (faster than parallel for small files)
+    for (const fileData of files) {
+      try {
         // Generate filename with timestamp and random suffix
         const timestamp = Date.now();
         const randomSuffix = Math.random().toString(36).substring(2, 8);
-        const originalName = file.originalFilename || file.name || 'unknown';
+        const originalName = fileData.filename || 'unknown';
         const filename = `${timestamp}-${randomSuffix}-${originalName}`;
-        
-        // Read file buffer
-        const fs = require('fs');
-        const fileBuffer = fs.readFileSync(file.filepath);
         
         // Upload to R2
         await putObject({
           Bucket: process.env.R2_BUCKET_NAME,
           Key: filename,
-          Body: fileBuffer,
-          ContentType: file.mimetype || 'application/octet-stream',
+          Body: fileData.buffer,
+          ContentType: fileData.mimetype || 'application/octet-stream',
         });
         
         // Build file URLs
@@ -69,15 +107,15 @@ export default async function handler(req, res) {
           filename: filename,
           originalName: originalName,
           key: filename,
-          size: file.size,
-          contentType: file.mimetype || 'application/octet-stream',
+          size: fileData.size,
+          contentType: fileData.mimetype || 'application/octet-stream',
           publicUrl: publicUrl,
           downloadUrl: downloadUrl,
           uploadedAt: new Date().toISOString()
         });
       } catch (uploadError) {
         errors.push({ 
-          file: file.originalFilename || file.name, 
+          file: fileData.filename, 
           error: uploadError.message 
         });
       }
@@ -87,7 +125,7 @@ export default async function handler(req, res) {
       uploaded: uploadResults,
       errors: errors,
       summary: {
-        total: fileArray.length,
+        total: files.length,
         successful: uploadResults.length,
         failed: errors.length
       }

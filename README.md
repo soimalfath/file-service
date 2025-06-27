@@ -184,7 +184,21 @@ ACCESS_TOKEN_SECRET=very-long-random-string-for-access-tokens
 REFRESH_TOKEN_SECRET=different-very-long-random-string-for-refresh-tokens
 ```
 
-## Deployment ke Vercel
+## Deployment ke Vercel (Hobby Plan Compatible)
+
+### 🎯 **Optimized for Vercel Hobby Plan**
+- **File Size**: Max 25MB per file (vs 50MB limit)
+- **Batch Upload**: Max 5 files per batch (vs 10)
+- **Function Timeout**: 10 seconds (Hobby Plan limit)
+- **Daily Executions**: 1000 per day
+- **Lightweight**: Uses `busboy` instead of `formidable` for smaller bundle size
+
+### 📋 **Hobby Plan Limitations**
+- ✅ Function timeout: 10 seconds
+- ✅ Function memory: 1024MB
+- ✅ Bandwidth: 100GB/month
+- ✅ Domain: 1 custom domain
+- ✅ Executions: 1000 per day
 
 ### Langkah Deployment
 
