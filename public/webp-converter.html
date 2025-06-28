@@ -224,30 +224,57 @@
             const mainContent = document.getElementById('mainContent');
 
             try {
-                const response = await fetch('/auth/status', {
+                let response = await fetch('/auth/status', {
                     method: 'GET',
                     credentials: 'include'
                 });
 
+                let result = null;
                 if (response.ok) {
-                    const result = await response.json();
-                    // Support both { success, data: { authenticated: true, ... } } and { success, user }
-                    const isAuthenticated = (result.data && result.data.authenticated) || result.user;
-                    if (result.success && isAuthenticated) {
-                        authSection.classList.add('hidden');
-                        loginSection.classList.add('hidden');
-                        mainContent.classList.remove('hidden');
-                        initializeApp();
-                    } else {
-                        authSection.classList.add('hidden');
-                        mainContent.classList.add('hidden');
-                        loginSection.classList.remove('hidden');
-                    }
-                } else {
-                    authSection.classList.add('hidden');
-                    mainContent.classList.add('hidden');
-                    loginSection.classList.remove('hidden');
+                    result = await response.json();
                 }
+
+                let isAuthenticated = result && ((result.data && result.data.authenticated) || result.user);
+                if (response.ok && result.success && isAuthenticated) {
+                    authSection.classList.add('hidden');
+                    loginSection.classList.add('hidden');
+                    mainContent.classList.remove('hidden');
+                    initializeApp();
+                    return;
+                }
+
+                // Try refresh if not authenticated
+                let triedRefresh = false;
+                if (!isAuthenticated) {
+                    // Try to refresh token
+                    triedRefresh = true;
+                    const refreshResp = await fetch('/auth/refresh', {
+                        method: 'POST',
+                        credentials: 'include'
+                    });
+                    if (refreshResp.ok) {
+                        // Try status again
+                        response = await fetch('/auth/status', {
+                            method: 'GET',
+                            credentials: 'include'
+                        });
+                        if (response.ok) {
+                            result = await response.json();
+                            isAuthenticated = (result.data && result.data.authenticated) || result.user;
+                            if (result.success && isAuthenticated) {
+                                authSection.classList.add('hidden');
+                                loginSection.classList.add('hidden');
+                                mainContent.classList.remove('hidden');
+                                initializeApp();
+                                return;
+                            }
+                        }
+                    }
+                }
+                // If still not authenticated after refresh
+                authSection.classList.add('hidden');
+                mainContent.classList.add('hidden');
+                loginSection.classList.remove('hidden');
             } catch (error) {
                 console.error('Auth check failed:', error);
                 authSection.classList.add('hidden');
