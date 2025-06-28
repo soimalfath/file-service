@@ -377,8 +377,13 @@
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             // Configuration
-            // Ambil API_KEY dari window.ENV jika ada, fallback ke placeholder
-            const DEFAULT_API_KEY = window.ENV?.API_KEY || 'your-api-key-change-this';
+            // Ambil API_KEY dari endpoint backend agar selalu sinkron dengan env
+            let DEFAULT_API_KEY = 'your-api-key-change-this';
+            fetch('/api/apikey')
+              .then(r => r.json())
+              .then(d => {
+                if (d.apiKey) DEFAULT_API_KEY = d.apiKey;
+              });
 
             // DOM Elements
             const generateApiKeyBtn = document.getElementById('generateApiKeyBtn');
@@ -459,7 +464,14 @@
                 isApiKeySectionVisible = !isApiKeySectionVisible;
                 if (isApiKeySectionVisible) {
                     apiKeySection.classList.remove('hidden');
-                    apiKeyDisplay.value = DEFAULT_API_KEY;
+                    // Ambil API key terbaru dari backend jika belum ada
+                    if (!DEFAULT_API_KEY || DEFAULT_API_KEY === 'your-api-key-change-this') {
+                        fetch('/api/apikey').then(r => r.json()).then(d => {
+                            apiKeyDisplay.value = d.apiKey || 'your-api-key-change-this';
+                        });
+                    } else {
+                        apiKeyDisplay.value = DEFAULT_API_KEY;
+                    }
                     generateApiKeyBtn.querySelector('span').textContent = 'Hide API Key';
                     showToast('API Key displayed. Keep it secure!', 'warning');
                 } else {

@@ -484,18 +484,21 @@
             }
 
             function downloadFile(fileName, url) {
-                try {
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = fileName;
-                    document.body.appendChild(a);
-                    a.click();
+                showToast(`Mengunduh ${fileName}...`, 'info');
+    
+                // Metode 1: Anchor download (paling andal)
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = fileName; // set fileName as the downloaded file name
+                a.rel = 'noopener noreferrer';
+                a.style.display = 'none';
+                document.body.appendChild(a);
+                a.click();
+                
+                // Hapus elemen anchor setelah klik
+                setTimeout(() => {
                     document.body.removeChild(a);
-                    showToast(`Mengunduh ${fileName}...`, 'info');
-                } catch (error) {
-                    console.error('Download error:', error);
-                    showToast('Gagal mengunduh file.', 'error');
-                }
+                }, 100);
             }
             
             // --- FUNGSI UPLOADFILES YANG TELAH DIPERBARUI ---
