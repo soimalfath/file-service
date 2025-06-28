@@ -115,26 +115,57 @@ module.exports = async function handler(req, res) {
         const accessCookie = setCookie('accessToken', newAccessToken, { maxAge: 15 * 60 });
         res.setHeader('Set-Cookie', accessCookie);
       }
-      const key = getKey(req);
+      // Parse URL to extract file key, support /r2/download/:key or ?key=
+      const { parse } = require('url');
+      const { pathname, query } = parse(req.url, true);
+      let key = query.key || pathname.replace('/r2/download/', '');
       if (!key) return errorResponse(res, 400, 'File key is required');
       const decodedKey = decodeURIComponent(key);
       const Bucket = process.env.R2_BUCKET_NAME;
+      if (!Bucket) return errorResponse(res, 500, 'Server configuration error: Bucket name is missing.');
+      // Stream file from R2 directly to force download
       const headResult = await headObject({ Bucket, Key: decodedKey });
       if (!headResult) return errorResponse(res, 404, 'File not found');
-      const result = await getObject({ Bucket, Key: decodedKey });
-      const originalName = decodedKey.includes('-') ? decodedKey.substring(decodedKey.indexOf('-') + 1) : decodedKey;
-      res.setHeader('Content-Type', headResult.ContentType || result.ContentType || 'application/octet-stream');
-      res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(originalName)}"`);
-      if (headResult.ContentLength || result.ContentLength) res.setHeader('Content-Length', headResult.ContentLength || result.ContentLength);
-      if (result.Body && typeof result.Body.pipe === 'function') {
-        result.Body.pipe(res);
-      } else if (result.Body) {
-        const chunks = [];
-        for await (const chunk of result.Body) { chunks.push(chunk); }
-        const buffer = Buffer.concat(chunks);
-        res.send(buffer);
-      } else {
-        throw new Error('No file content received');
+      try {
+        const result = await getObject({ Bucket, Key: decodedKey });
+        const originalName = decodedKey.includes('-') ? decodedKey.substring(decodedKey.indexOf('-') + 1) : decodedKey;
+        
+        // Set headers
+        res.setHeader('Content-Type', headResult.ContentType || result.ContentType || 'application/octet-stream');
+        res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(originalName)}"`);
+        if (headResult.ContentLength || result.ContentLength) {
+          res.setHeader('Content-Length', headResult.ContentLength || result.ContentLength);
+        }
+
+        // Handle streaming appropriately
+        if (result.Body && typeof result.Body.pipe === 'function') {
+          // Use event handlers to properly handle end and error cases
+          result.Body.on('error', (err) => {
+            console.error('Stream error:', err);
+            // Only end response if it hasn't been sent yet
+            if (!res.headersSent) {
+              res.status(500).end();
+            }
+          });
+          
+          // Stream to response
+          return result.Body.pipe(res);
+        } else if (result.Body) {
+          // Buffer approach when pipe not available
+          const chunks = [];
+          for await (const chunk of result.Body) { 
+            chunks.push(chunk); 
+          }
+          const buffer = Buffer.concat(chunks);
+          return res.end(buffer);
+        } else {
+          throw new Error('No file content received');
+        }
+      } catch (streamError) {
+        console.error('R2 streaming error:', streamError);
+        if (!res.headersSent) {
+          return errorResponse(res, 500, 'Failed to stream file', streamError.message);
+        }
       }
     } catch (error) {
       console.error('R2 Download error:', error);
