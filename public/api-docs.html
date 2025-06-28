@@ -81,6 +81,10 @@
                     <p class="text-gray-500 mt-2 ml-12">REST API for Qiblat File Manager - External Application Integration</p>
                 </div>
                 <div class="flex items-center gap-2 flex-shrink-0 self-end sm:self-center">
+                    <a href="/webp-converter.html" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors text-sm font-semibold flex items-center gap-2">
+                        <i class="fas fa-image"></i>
+                        <span>WebP Converter</span>
+                    </a>
                     <button id="generateApiKeyBtn" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors text-sm font-semibold flex items-center gap-2">
                         <i class="fas fa-key"></i>
                         <span>Show API Key</span>
@@ -141,19 +145,60 @@
         <!-- Authentication -->
         <div class="bg-white rounded-xl shadow-md p-6 mb-8">
             <h2 class="text-xl font-bold text-gray-800 mb-4">Authentication</h2>
-            <p class="text-gray-600 mb-6">All API endpoints require authentication using an API key. Include the API key in one of the following ways:</p>
+            <p class="text-gray-600 mb-6">This API supports two types of authentication:</p>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                <div class="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                    <h3 class="font-semibold text-blue-800 mb-2 flex items-center">
+                        <i class="fas fa-key mr-2"></i>
+                        API Key Authentication
+                    </h3>
+                    <p class="text-blue-700 text-sm mb-3">For external applications and programmatic access</p>
+                    <div class="space-y-2">
+                        <div>
+                            <h4 class="font-medium text-blue-800 text-sm">X-API-Key Header</h4>
+                            <code class="text-xs bg-blue-100 px-2 py-1 rounded">X-API-Key: your-api-key</code>
+                        </div>
+                        <div>
+                            <h4 class="font-medium text-blue-800 text-sm">Authorization Bearer</h4>
+                            <code class="text-xs bg-blue-100 px-2 py-1 rounded">Authorization: Bearer your-api-key</code>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="p-4 bg-green-50 rounded-lg border border-green-200">
+                    <h3 class="font-semibold text-green-800 mb-2 flex items-center">
+                        <i class="fas fa-user-shield mr-2"></i>
+                        JWT Authentication
+                    </h3>
+                    <p class="text-green-700 text-sm mb-3">For web frontend interface (session-based)</p>
+                    <div class="space-y-2">
+                        <div>
+                            <h4 class="font-medium text-green-800 text-sm">Cookie-based</h4>
+                            <code class="text-xs bg-green-100 px-2 py-1 rounded">credentials: 'include'</code>
+                        </div>
+                        <div>
+                            <h4 class="font-medium text-green-800 text-sm">Automatic</h4>
+                            <code class="text-xs bg-green-100 px-2 py-1 rounded">Set after login</code>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                    <h3 class="font-semibold text-gray-700 mb-2">Option 1: <code class="text-sm bg-gray-200 px-1 py-0.5 rounded">X-API-Key</code> Header</h3>
+                    <h3 class="font-semibold text-gray-700 mb-2">Example: API Key</h3>
                     <pre><code class="language-bash">curl -H "X-API-Key: your-api-key" \
     -X POST \
-    http://localhost:3000/api/upload</code></pre>
+    http://localhost:3000/api/upload-webp</code></pre>
                 </div>
                 <div>
-                    <h3 class="font-semibold text-gray-700 mb-2">Option 2: <code class="text-sm bg-gray-200 px-1 py-0.5 rounded">Authorization</code> Bearer</h3>
-                    <pre><code class="language-bash">curl -H "Authorization: Bearer your-api-key" \
-    -X POST \
-    http://localhost:3000/api/upload</code></pre>
+                    <h3 class="font-semibold text-gray-700 mb-2">Example: Frontend JWT</h3>
+                    <pre><code class="language-javascript">fetch('/api/upload-webp', {
+  method: 'POST',
+  body: formData,
+  credentials: 'include'
+})</code></pre>
                 </div>
             </div>
         </div>
@@ -232,6 +277,69 @@
     }
   }
 }</code></pre>
+                    </div>
+                </div>
+            </div>
+
+             <div class="endpoint-card bg-white rounded-xl shadow-md p-6">
+                <div class="flex flex-col md:flex-row items-start md:items-center justify-between mb-4 gap-2">
+                    <h3 class="text-xl font-bold text-gray-800 flex items-center">
+                        <span class="bg-purple-100 text-purple-800 px-2.5 py-1 rounded-md text-sm font-mono mr-4">POST</span>
+                        Upload & Convert to WebP
+                    </h3>
+                    <span class="text-sm text-gray-500 font-mono bg-gray-100 px-2 py-1 rounded-md">/api/files/upload-webp (API) | /r2/upload-webp (Frontend)</span>
+                </div>
+                <p class="text-gray-600 mb-6">Upload image and automatically convert to WebP format for better web performance. Supports both JWT (frontend) and API Key (external apps) authentication.</p>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div>
+                        <h4 class="font-semibold text-gray-700 mb-2">Request (API Key - External Apps)</h4>
+                        <pre><code class="language-bash">curl -X POST \
+ -H "X-API-Key: your-api-key" \
+ -F "image=@/path/to/image.jpg" \
+ -F "quality=80" \
+ http://localhost:3000/api/files/upload-webp</code></pre>
+                        <h4 class="font-semibold text-gray-700 mb-2 mt-4">Request (Frontend/JWT)</h4>
+                        <pre><code class="language-javascript">// Frontend with JWT cookie
+fetch('/r2/upload-webp', {
+  method: 'POST',
+  body: formData,
+  credentials: 'include'
+})</code></pre>
+                        <div class="mt-4 p-4 bg-blue-50 rounded-lg">
+                            <h5 class="font-semibold text-blue-800 mb-2">Parameters</h5>
+                            <ul class="text-sm text-blue-700 space-y-1">
+                                <li><strong>image:</strong> Image file (required) - JPEG, PNG, GIF, BMP, TIFF, WebP</li>
+                                <li><strong>quality:</strong> Number (optional, default: 80) - WebP quality (10-100)</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold text-gray-700 mb-2">Response</h4>
+                        <pre><code class="language-json">{
+  "success": true,
+  "message": "Image uploaded and converted successfully",
+  "authType": "apikey",
+  "file": {
+    "key": "webp/1698765432-example.webp",
+    "originalName": "example.jpg",
+    "convertedName": "example.webp",
+    "size": 245760,
+    "contentType": "image/webp",
+    "url": "https://your-r2-domain.com/webp/1698765432-example.webp",
+    "wasConverted": true,
+    "originalFormat": "image/jpeg",
+    "uploadedAt": "2024-12-28T10:30:00.000Z"
+  }
+}</code></pre>
+                        <div class="mt-4 p-4 bg-green-50 rounded-lg">
+                            <h5 class="font-semibold text-green-800 mb-2">Benefits</h5>
+                            <ul class="text-sm text-green-700 space-y-1">
+                                <li>• 25-35% smaller file sizes</li>
+                                <li>• Faster loading times</li>
+                                <li>• Modern browser support</li>
+                                <li>• Quality preservation</li>
+                            </ul>
+                        </div>
                     </div>
                 </div>
             </div>

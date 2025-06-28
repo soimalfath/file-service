@@ -51,6 +51,96 @@ module.exports = async function handler(req, res) {
     }
   }
 
+  // --- Upload & Convert to WebP (POST /r2/upload-webp) ---
+  if (req.method === 'POST' && req.url === '/r2/upload-webp') {
+    try {
+      const { user, newAccessToken } = authenticateJwtOnly(req);
+      if (newAccessToken) {
+        const { setCookie } = require('./utils');
+        const accessCookie = setCookie('accessToken', newAccessToken, { maxAge: 15 * 60 });
+        res.setHeader('Set-Cookie', accessCookie);
+      }
+      const form = new formidable.IncomingForm({ maxFileSize: 10 * 1024 * 1024, maxFiles: 1 });
+      const [fields, files] = await form.parse(req);
+      
+      if (!files.image || files.image.length === 0) return errorResponse(res, 400, 'No image file uploaded');
+      const file = Array.isArray(files.image) ? files.image[0] : files.image;
+      if (!file.size || file.size === 0) return errorResponse(res, 400, 'Empty file uploaded');
+      
+      // Check if file is an image
+      if (!file.mimetype || !file.mimetype.startsWith('image/')) {
+        return errorResponse(res, 400, 'Only image files are allowed');
+      }
+      
+      const sharp = require('sharp');
+      const fs = require('fs');
+      const originalName = file.originalFilename || file.name || 'unknown';
+      const quality = parseInt(fields.quality?.[0] || fields.quality || 80, 10);
+      
+      let fileBuffer = fs.readFileSync(file.filepath);
+      let fileName = originalName;
+      let contentType = 'image/webp';
+      let wasConverted = false;
+
+      // Check if file is already WebP
+      if (file.mimetype !== 'image/webp') {
+        console.log(`Converting ${fileName} to WebP format...`);
+        
+        // Convert to WebP
+        try {
+          fileBuffer = await sharp(fileBuffer).webp({ quality }).toBuffer();
+          wasConverted = true;
+          
+          // Update filename to have .webp extension
+          const nameWithoutExt = fileName.substring(0, fileName.lastIndexOf('.')) || fileName;
+          fileName = `${nameWithoutExt}.webp`;
+        } catch (convertError) {
+          console.error('WebP conversion error:', convertError);
+          return errorResponse(res, 500, 'Failed to convert image to WebP', convertError.message);
+        }
+      }
+
+      // Generate unique filename with timestamp
+      const timestamp = Date.now();
+      const uniqueFileName = `webp/${timestamp}-${fileName}`;
+
+      // Upload to R2
+      await putObject({ 
+        Bucket: process.env.R2_BUCKET_NAME, 
+        Key: uniqueFileName, 
+        Body: fileBuffer, 
+        ContentType: contentType 
+      });
+      
+      const baseUrl = process.env.R2_PUBLIC_URL || '';
+      const publicUrl = baseUrl ? `${baseUrl.replace(/\/$/, '')}/${uniqueFileName}` : null;
+      
+      return successResponse(
+        res,
+        {
+          file: {
+            key: uniqueFileName,
+            originalName: originalName,
+            convertedName: fileName,
+            filename: uniqueFileName,
+            size: fileBuffer.length,
+            contentType: contentType,
+            url: publicUrl,
+            downloadUrl: `/r2/download/${uniqueFileName}`,
+            wasConverted: wasConverted,
+            originalFormat: file.mimetype,
+            uploadedAt: new Date().toISOString()
+          }
+        },
+        'Image uploaded and converted successfully'
+      );
+    } catch (error) {
+      console.error('R2 WebP Upload error:', error);
+      if (error.message.includes('token') || error.message.includes('authenticate')) return errorResponse(res, 401, error.message);
+      return errorResponse(res, 500, 'WebP upload failed', error.message);
+    }
+  }
+
   // --- List files (GET /r2/files) ---
   if (req.method === 'GET' && req.url.startsWith('/r2/files')) {
     try {

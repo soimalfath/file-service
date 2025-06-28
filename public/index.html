@@ -139,6 +139,9 @@
                     <a href="/api-docs.html" class="bg-gray-200 text-gray-700 p-2.5 rounded-lg hover:bg-gray-300 transition-colors" title="Dokumentasi API">
                         <i class="fas fa-code"></i>
                     </a>
+                    <a href="/webp-converter.html" class="bg-green-200 text-green-700 p-2.5 rounded-lg hover:bg-green-300 transition-colors" title="WebP Converter">
+                        <i class="fas fa-image"></i>
+                    </a>
                     <button id="logoutBtn" class="bg-gray-200 text-gray-700 p-2.5 rounded-lg hover:bg-red-200 hover:text-red-700 transition-colors" title="Keluar">
                         <i class="fas fa-sign-out-alt"></i>
                     </button>
@@ -227,14 +230,30 @@
             // --- Authentication ---
             async function checkAuth() {
                 try {
-                    const response = await fetch('/auth/status', { credentials: 'include' });
-                    if (!response.ok) window.location.href = '/login.html';
-                    const data = await response.json();
-                    if (!data.data || !data.data.authenticated) {
-                        window.location.href = '/login.html';
-                        return false;
+                    let response = await fetch('/auth/status', { credentials: 'include' });
+                    let data = null;
+                    if (response.ok) {
+                        data = await response.json();
                     }
-                    return true;
+                    let isAuthenticated = data && ((data.data && data.data.authenticated) || data.user);
+                    if (response.ok && data.success && isAuthenticated) {
+                        return true;
+                    }
+                    // Try refresh if not authenticated
+                    const refreshResp = await fetch('/auth/refresh', { method: 'POST', credentials: 'include' });
+                    if (refreshResp.ok) {
+                        // Try status again
+                        response = await fetch('/auth/status', { credentials: 'include' });
+                        if (response.ok) {
+                            data = await response.json();
+                            isAuthenticated = (data.data && data.data.authenticated) || data.user;
+                            if (data.success && isAuthenticated) {
+                                return true;
+                            }
+                        }
+                    }
+                    window.location.href = '/login.html';
+                    return false;
                 } catch (error) {
                     showToast('Pengecekan otentikasi gagal. Mengalihkan ke halaman login.', 'error');
                     setTimeout(() => window.location.href = '/login.html', 1500);
