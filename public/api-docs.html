@@ -383,7 +383,9 @@
               .then(r => r.json())
               .then(d => {
                 if (d.apiKey) DEFAULT_API_KEY = d.apiKey;
-              });
+                else showToast('Gagal mengambil API key dari backend', 'error');
+              })
+             .catch(() => showToast('Gagal mengambil API key dari backend', 'error'));
 
             // DOM Elements
             const generateApiKeyBtn = document.getElementById('generateApiKeyBtn');
