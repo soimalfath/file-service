@@ -28,6 +28,12 @@ app.use('/api', async (req, res, next) => {
   const path = req.path;
   const method = req.method;
 
+  // Special: /api/apikey direct handler
+  if (path === '/apikey') {
+    const apikeyHandler = require('./api/apikey');
+    return await apikeyHandler(req, res);
+  }
+
   try {
     if (path.startsWith('/auth/') || path === '/auth') {
       const authHandler = require('./api/auth');
