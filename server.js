@@ -114,6 +114,18 @@ app.get('/frontend-test.html', (req, res) => {
   res.sendFile(path.join(__dirname, 'frontend-test.html'));
 });
 
+app.get('/webp-converter.html', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'webp-converter.html'));
+});
+
+app.get('/webp', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'webp-converter.html'));
+});
+
+app.get('/webp-test', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'webp-test.html'));
+});
+
 // Fallback to serve index.html for other routes
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
