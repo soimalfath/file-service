@@ -42,7 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 // User is not authenticated, redirect to login
                 localStorage.removeItem('userData');
-                window.location.href = '/login.html';
+                window.location.href = '/loginW';
                 return false;
             }
         } catch (error) {
@@ -50,7 +50,7 @@ document.addEventListener('DOMContentLoaded', () => {
             localStorage.removeItem('userData');
             showToast('Sesi Anda telah berakhir. Mengalihkan ke halaman login.', 'error');
             setTimeout(() => {
-                window.location.href = '/login.html';
+                window.location.href = '/login';
             }, 1500);
             return false;
         }
@@ -64,7 +64,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Hapus data user dari localStorage
                 localStorage.removeItem('userData');
                 showToast('Berhasil keluar!', 'success');
-                setTimeout(() => window.location.href = '/login.html', 1000);
+                setTimeout(() => window.location.href = '/login', 1000);
             } else {
                 showToast('Gagal keluar: ' + (data.error || 'Kesalahan tidak diketahui'), 'error');
             }

@@ -90,41 +90,22 @@ app.use('/auth', async (req, res, next) => {
 });
 
 // Serve test files for testing
-app.get('/test-redirect.html', (req, res) => {
-  res.sendFile(path.join(__dirname, 'test-redirect.html'));
+
+
+app.get('/api-docs', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'api-docs.html'));
 });
 
-app.get('/simple-auth-test.html', (req, res) => {
-  res.sendFile(path.join(__dirname, 'simple-auth-test.html'));
+
+app.get('/login', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'login.html'));
 });
 
-app.get('/direct-auth-test.html', (req, res) => {
-  res.sendFile(path.join(__dirname, 'direct-auth-test.html'));
-});
 
-app.get('/immediate-test.html', (req, res) => {
-  res.sendFile(path.join(__dirname, 'immediate-test.html'));
-});
-
-app.get('/test-buttons.html', (req, res) => {
-  res.sendFile(path.join(__dirname, 'test-buttons.html'));
-});
-
-app.get('/frontend-test.html', (req, res) => {
-  res.sendFile(path.join(__dirname, 'frontend-test.html'));
-});
-
-app.get('/webp-converter.html', (req, res) => {
+app.get('/webp-converter', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'webp-converter.html'));
 });
 
-app.get('/webp', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'webp-converter.html'));
-});
-
-app.get('/webp-test', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'webp-test.html'));
-});
 
 // Fallback to serve index.html for other routes
 app.get('*', (req, res) => {
