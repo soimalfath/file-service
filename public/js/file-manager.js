@@ -55,11 +55,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
             }
-            window.location.href = '/login.html';
+            window.location.href = '/login';
             return false;
         } catch (error) {
             showToast('Pengecekan otentikasi gagal. Mengalihkan ke halaman login.', 'error');
-            setTimeout(() => window.location.href = '/login.html', 1500);
+            setTimeout(() => window.location.href = '/login', 1500);
             return false;
         }
     }
@@ -70,7 +70,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await response.json();
             if (data.success) {
                 showToast('Berhasil keluar!', 'success');
-                setTimeout(() => window.location.href = '/login.html', 1000);
+                setTimeout(() => window.location.href = '/login', 1000);
             } else {
                 showToast('Gagal keluar: ' + (data.error || 'Kesalahan tidak diketahui'), 'error');
             }
@@ -95,7 +95,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     response = await fetch(url, { ...options, credentials: 'include', signal: controller.signal });
                     if (response.status !== 401) return response;
                 }
-                window.location.href = '/login.html';
+                window.location.href = '/login';
                 throw new Error('Session expired, please login again.');
             }
             return response;
