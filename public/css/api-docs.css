@@ -1,0 +1,50 @@
+:root {
+    --primary-color: #4f46e5;
+    --primary-hover: #4338ca;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+}
+
+/* Toast animation */
+.toast {
+    animation: slide-in 0.3s ease-out, fade-out 0.5s ease-in forwards;
+    animation-delay: 0s, 3.5s;
+}
+
+@keyframes slide-in {
+    from {
+        transform: translateY(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes fade-out {
+    from {
+        opacity: 1;
+    }
+    to {
+        opacity: 0;
+    }
+}
+
+/* Endpoint card hover effect */
+.endpoint-card {
+    transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
+}
+
+.endpoint-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+}
+
+/* Code block styling */
+pre[class*="language-"] {
+    border: none;
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+}

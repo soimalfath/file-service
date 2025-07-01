@@ -3,64 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>API Documentation - R2 File Manager</title>
+    <title>API Documentation - Qiblat File Manager</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
-    <style>
-        :root {
-            --primary-color: #4f46e5;
-            --primary-hover: #4338ca;
-        }
-
-        body {
-            font-family: 'Inter', sans-serif;
-        }
-
-        /* Toast animation */
-        .toast {
-            animation: slide-in 0.3s ease-out, fade-out 0.5s ease-in forwards;
-            animation-delay: 0s, 3.5s;
-        }
-
-        @keyframes slide-in {
-            from {
-                transform: translateY(100%);
-                opacity: 0;
-            }
-            to {
-                transform: translateY(0);
-                opacity: 1;
-            }
-        }
-
-        @keyframes fade-out {
-            from {
-                opacity: 1;
-            }
-            to {
-                opacity: 0;
-            }
-        }
-
-        /* Endpoint card hover effect */
-        .endpoint-card {
-            transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
-        }
-
-        .endpoint-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-        }
-
-        /* Code block styling */
-        pre[class*="language-"] {
-            border: none;
-            box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
-        }
-    </style>
+    <link rel="stylesheet" href="/css/api-docs.css">
 </head>
 <body class="bg-gray-50 min-h-screen">
 
@@ -81,10 +30,10 @@
                     <p class="text-gray-500 mt-2 ml-12">REST API for Qiblat File Manager - External Application Integration</p>
                 </div>
                 <div class="flex items-center gap-2 flex-shrink-0 self-end sm:self-center">
-                    <a href="/webp-converter.html" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors text-sm font-semibold flex items-center gap-2">
+                    <!-- <a href="/webp-converter.html" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors text-sm font-semibold flex items-center gap-2">
                         <i class="fas fa-image"></i>
                         <span>WebP Converter</span>
-                    </a>
+                    </a> -->
                     <button id="generateApiKeyBtn" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors text-sm font-semibold flex items-center gap-2">
                         <i class="fas fa-key"></i>
                         <span>Show API Key</span>
@@ -482,150 +431,6 @@ fetch('/r2/upload-webp', {
         </div>
     </div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            // Configuration
-            // Ambil API_KEY dari endpoint backend agar selalu sinkron dengan env
-            let DEFAULT_API_KEY = 'your-api-key-change-this';
-            fetch('/api/apikey')
-              .then(r => r.json())
-              .then(d => {
-                if (d.apiKey) DEFAULT_API_KEY = d.apiKey;
-                else showToast('Gagal mengambil API key dari backend', 'error');
-              })
-             .catch(() => showToast('Gagal mengambil API key dari backend', 'error'));
-
-            // DOM Elements
-            const generateApiKeyBtn = document.getElementById('generateApiKeyBtn');
-            const apiKeySection = document.getElementById('apiKeySection');
-            const apiKeyDisplay = document.getElementById('apiKeyDisplay');
-            const toggleApiKeyBtn = document.getElementById('toggleApiKeyBtn');
-            const copyApiKeyBtn = document.getElementById('copyApiKeyBtn');
-            const copyBaseUrlBtn = document.getElementById('copyBaseUrlBtn');
-            const baseUrlElement = document.getElementById('baseUrl');
-
-            let isApiKeySectionVisible = false;
-
-            // --- Functions ---
-
-            const showToast = (message, type = 'info') => {
-                const toastContainer = document.getElementById('toast-container');
-                if (!toastContainer) return;
-
-                const toast = document.createElement('div');
-                const icons = {
-                    success: 'fa-check-circle',
-                    error: 'fa-times-circle',
-                    warning: 'fa-exclamation-triangle',
-                    info: 'fa-info-circle'
-                };
-                const colors = {
-                    success: 'bg-green-500',
-                    error: 'bg-red-500',
-                    warning: 'bg-yellow-500',
-                    info: 'bg-blue-500'
-                };
-
-                toast.className = `toast px-4 py-3 rounded-lg shadow-lg text-white text-sm font-medium max-w-sm ${colors[type]}`;
-                toast.innerHTML = `
-                    <div class="flex items-center gap-3">
-                        <i class="fas ${icons[type]} text-lg"></i>
-                        <span>${message}</span>
-                    </div>
-                `;
-
-                toastContainer.appendChild(toast);
-                setTimeout(() => {
-                    toast.remove();
-                }, 4000);
-            };
-            
-            const copyToClipboard = (text, successMessage) => {
-                // Use the Clipboard API for modern browsers
-                if (navigator.clipboard && window.isSecureContext) {
-                    navigator.clipboard.writeText(text).then(() => {
-                        showToast(successMessage, 'success');
-                    }).catch(err => {
-                        console.error('Copy failed:', err);
-                        showToast('Failed to copy to clipboard', 'error');
-                    });
-                } else {
-                    // Fallback for older browsers
-                    const textArea = document.createElement("textarea");
-                    textArea.value = text;
-                    textArea.style.position = "fixed"; // Avoid scrolling to bottom
-                    textArea.style.left = "-9999px";
-                    document.body.appendChild(textArea);
-                    textArea.focus();
-                    textArea.select();
-                    try {
-                        document.execCommand('copy');
-                        showToast(successMessage, 'success');
-                    } catch (err) {
-                        console.error('Fallback copy failed:', err);
-                        showToast('Failed to copy to clipboard', 'error');
-                    }
-                    document.body.removeChild(textArea);
-                }
-            };
-            
-
-            const toggleApiKeySection = () => {
-                isApiKeySectionVisible = !isApiKeySectionVisible;
-                if (isApiKeySectionVisible) {
-                    apiKeySection.classList.remove('hidden');
-                    // Ambil API key terbaru dari backend jika belum ada
-                    if (!DEFAULT_API_KEY || DEFAULT_API_KEY === 'your-api-key-change-this') {
-                        fetch('/api/apikey').then(r => r.json()).then(d => {
-                            apiKeyDisplay.value = d.apiKey || 'your-api-key-change-this';
-                        });
-                    } else {
-                        apiKeyDisplay.value = DEFAULT_API_KEY;
-                    }
-                    generateApiKeyBtn.querySelector('span').textContent = 'Hide API Key';
-                    showToast('API Key displayed. Keep it secure!', 'warning');
-                } else {
-                    apiKeySection.classList.add('hidden');
-                    generateApiKeyBtn.querySelector('span').textContent = 'Show API Key';
-                }
-            };
-
-            const toggleApiKeyVisibility = () => {
-                const isVisible = apiKeyDisplay.type === 'text';
-                apiKeyDisplay.type = isVisible ? 'password' : 'text';
-                const icon = toggleApiKeyBtn.querySelector('i');
-                icon.className = isVisible ? 'fas fa-eye' : 'fas fa-eye-slash';
-            };
-
-
-            // --- Event Listeners ---
-
-            if (generateApiKeyBtn) {
-                generateApiKeyBtn.addEventListener('click', toggleApiKeySection);
-            }
-
-            if (toggleApiKeyBtn) {
-                toggleApiKeyBtn.addEventListener('click', toggleApiKeyVisibility);
-            }
-
-            if (copyApiKeyBtn) {
-                copyApiKeyBtn.addEventListener('click', () => {
-                   copyToClipboard(apiKeyDisplay.value, 'API Key copied to clipboard!');
-                });
-            }
-
-            if (copyBaseUrlBtn) {
-                copyBaseUrlBtn.addEventListener('click', () => {
-                    copyToClipboard(baseUrlElement.textContent.replace('Base URL: ', ''), 'Base URL copied to clipboard!');
-                });
-            }
-
-            // --- Initial Setup ---
-
-            if (baseUrlElement) {
-                baseUrlElement.textContent = `${window.location.origin}/api`;
-            }
-        });
-    </script>
+    <script src="/js/api-docs.js"></script>
 </body>
 </html>
