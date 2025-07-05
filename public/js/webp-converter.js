@@ -172,7 +172,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Create FormData
         const formData = new FormData();
-        formData.append('file', selectedFile);
+        formData.append('image', selectedFile);
         formData.append('quality', qualitySlider.value);
         
         try {
@@ -190,8 +190,11 @@ document.addEventListener('DOMContentLoaded', () => {
             xhr.addEventListener('load', () => {
                 if (xhr.status === 200) {
                     const response = JSON.parse(xhr.responseText);
+                    console.log('Response:', response);
                     if (response.success) {
-                        showSuccessResult(response.data);
+                        console.log('Success, showing result');
+                        // The response structure is { success: true, data: { file: {...} } }
+                        showSuccessResult(response.data.file);
                     } else {
                         showErrorResult(response.error || 'Konversi gagal');
                     }
@@ -267,7 +270,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             </li>
                             <li class="flex justify-between">
                                 <span class="text-gray-600">Size:</span>
-                                <span id="originalSize" class="font-medium">${formatFileSize(data.originalSize)}</span>
+                                <span id="originalSize" class="font-medium">${data.originalSize ? formatFileSize(data.originalSize) : 'Unknown'}</span>
                             </li>
                             <li class="flex justify-between">
                                 <span class="text-gray-600">Format:</span>
@@ -293,7 +296,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             </li>
                             <li class="flex justify-between">
                                 <span class="text-gray-600">Reduction:</span>
-                                <span id="sizeReduction" class="font-medium text-green-600">${((data.originalSize - data.size) / data.originalSize * 100).toFixed(2)}%</span>
+                                <span id="sizeReduction" class="font-medium text-green-600">${data.originalSize ? ((data.originalSize - data.size) / data.originalSize * 100).toFixed(2) : '0'}%</span>
                             </li>
                         </ul>
                     </div>

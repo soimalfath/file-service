@@ -75,6 +75,7 @@ module.exports = async function handler(req, res) {
       const sharp = require('sharp');
       const fs = require('fs');
       const originalName = file.originalFilename || file.name || 'unknown';
+      const originalSize = file.size; // Store original file size
       const quality = parseInt(fields.quality?.[0] || fields.quality || 80, 10);
       
       let fileBuffer = fs.readFileSync(file.filepath);
@@ -124,6 +125,7 @@ module.exports = async function handler(req, res) {
             convertedName: fileName,
             filename: uniqueFileName,
             size: fileBuffer.length,
+            originalSize: originalSize,
             contentType: contentType,
             url: publicUrl,
             downloadUrl: `/r2/download/${uniqueFileName}`,
